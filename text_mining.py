@@ -31,9 +31,11 @@ def plot_wordcloud(text, ngram_range=(1,1), max_words=200, strict_stopwords=None
 
     return fig
 
-def vectorize(corpus, dim=None, vectorization_type=1):
+def vectorize(corpus, dim=None, vectorization_type=1, display=False):
     if dim is None:
-        dim = int(np.ceil(np.median([len(text.split(' ')) for text in corpus])))
+        vocab_size = len(pd.unique([word for text in corpus for word in text.split()]))
+        if vocab_size > 150:
+            dim = int(np.ceil(np.median([len(text.split(' ')) for text in corpus])))
 
     if vectorization_type == 1 or vectorization_type == 2:
         vectorizer = CountVectorizer(max_features=dim)
@@ -45,5 +47,8 @@ def vectorize(corpus, dim=None, vectorization_type=1):
     X = np.array(vectorizer.fit_transform(corpus).todense())
     if vectorization_type == 1:
         X[X != 0] = 1
+
+    if display:
+        X = pd.DataFrame(X, columns=vectorizer.get_feature_names())
 
     return X
