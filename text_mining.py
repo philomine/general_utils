@@ -52,3 +52,22 @@ def vectorize(corpus, dim=None, vectorization_type=1, display=False):
         X = pd.DataFrame(X, columns=vectorizer.get_feature_names())
 
     return X
+
+def tokenize(corpus, pad=False, dim=None, with_dictionary=False, max_vocabulary=None):
+    vectorizer = CountVectorizer(max_features=max_vocabulary)
+    vectorizer.fit_transform(corpus)
+
+    vocabulary = {value: i+1 for (i, value) in enumerate(vectorizer.get_feature_names())}
+    default_index = np.max(list(vocabulary.values())) + 1
+    corpus = [[vocabulary.get(word, default_index) for word in text.split(' ')] for text in corpus]
+
+    if pad:
+        max_length = np.max([len(text) for text in corpus])
+        corpus = np.array([text + [0] * (max_length - len(text)) for text in corpus])
+        if dim:
+            corpus = corpus[:,:dim]
+
+    if with_dictionary:
+        return corpus, vocabulary
+    else:
+        return corpus

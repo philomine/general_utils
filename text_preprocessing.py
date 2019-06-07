@@ -25,7 +25,15 @@ def lowercase(text):
 def remove_special_characters(text):
     try:
         text = re.sub(r"<br />", r" ", text)
+        text = re.sub(r'[!"#$%&()*+,-./:;<=>?@[\\]\^_`{|}~\t\n]', r'', text)
         text = re.sub(r"[^\w\s]", r" ", text)
+        text = remove_double_space(text)
+        return text.strip()
+    except:
+        return np.nan
+
+def remove_double_space(text):
+    try:
         text = re.sub(r"\s+", r" ", text)
         return text.strip()
     except:
@@ -34,13 +42,16 @@ def remove_special_characters(text):
 def remove_numbers(text):
     try:
         text = re.sub(r"[0-9]+", r"", text)
+        text = remove_double_space(text)
         return text.strip()
     except:
         return np.nan
 
 def remove_stopwords(text, stopwords=stopwords):
     try:
-        return ' '.join(word for word in text.split(' ') if word not in stopwords)
+        text = ' '.join(word for word in text.split(' ') if word not in stopwords)
+        text = remove_double_space(text)
+        return text
     except:
         return np.nan
 
@@ -66,6 +77,15 @@ def join_collocations(text, my_collocations=None):
     return text
 
 def preprocess(text, my_collocations=None, preprocessing_steps=[1, 2, 3, 4, 5, 6, 4]):
+    '''
+    :param preprocessing_steps: Preprocessing steps to execute.
+    1: lowercase,
+    2: remove_special_characters,
+    3: remove_numbers,
+    4: remove_stopwords,
+    5: lemmatize_unigrams,
+    6: join_collocations
+    '''
     if my_collocations:
         global collocations
         collocations = my_collocations
@@ -88,6 +108,15 @@ def preprocess(text, my_collocations=None, preprocessing_steps=[1, 2, 3, 4, 5, 6
     return text
 
 def preprocess_texts_in_dataframe(df, columns, english=True, my_collocations=None, preprocessing_steps=[1, 2, 3, 4, 5, 6, 4]):
+    '''
+    :param preprocessing_steps: Preprocessing steps to execute.
+    1: lowercase,
+    2: remove_special_characters,
+    3: remove_numbers,
+    4: remove_stopwords,
+    5: lemmatize_unigrams,
+    6: join_collocations
+    '''
     df = df.copy()
 
     if my_collocations:
