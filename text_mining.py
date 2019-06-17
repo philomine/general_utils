@@ -54,6 +54,61 @@ def vectorize(corpus, dim=None, vectorization_type=1, display=False):
     return X
 
 def tokenize(corpus, pad=False, dim=None, with_dictionary=False, max_vocabulary=None):
+    """
+    If pad is False, dim is ignored
+
+    :Example:
+    >>> corpus = [
+    >>>     'this is the first document',
+    >>>     'this document is the second document',
+    >>>     'here is the third one',
+    >>>     'is this the first document'
+    >>> ]
+    >>>
+    >>> # Default behavior
+    >>> tokenize(corpus)
+    [[9, 4, 7, 2, 1], [9, 1, 4, 7, 6, 1], [3, 4, 7, 8, 5], [4, 9, 7, 2, 1]]
+    >>>
+    >>> # The with_dictionary parameter
+    >>> tokenize(corpus, with_dictionary=True)
+    ([[9, 4, 7, 2, 1], [9, 1, 4, 7, 6, 1], [3, 4, 7, 8, 5], [4, 9, 7, 2, 1]],
+     {'document': 1,
+      'first': 2,
+      'here': 3,
+      'is': 4,
+      'one': 5,
+      'second': 6,
+      'the': 7,
+      'third': 8,
+      'this': 9})
+    >>> tokenized_corpus, vocabulary = tokenize(corpus, with_dictionary=True)
+    >>>
+    >>> # The pad and dim parameters
+    >>> tokenize(corpus, pad=True)
+    [[9, 4, 7, 2, 1, 0],
+     [9, 1, 4, 7, 6, 1],
+     [3, 4, 7, 8, 5, 0],
+     [4, 9, 7, 2, 1, 0]]
+    >>> tokenize(corpus, pad=True, dim=4)
+    [[9, 4, 7, 2],
+     [9, 1, 4, 7],
+     [3, 4, 7, 8],
+     [4, 9, 7, 2]]
+    >>>
+    >>> # The max_vocabulary parameter
+    >>> tokenize(corpus, max_vocabulary=3)
+    [[4, 2, 3, 4, 1], [4, 1, 2, 3, 4, 1], [4, 2, 3, 4, 4], [2, 4, 3, 4, 1]]
+    >>> tokenize(corpus, max_vocabulary=3, pad=True)
+    [[4, 2, 3, 4, 1, 0],
+     [4, 1, 2, 3, 4, 1],
+     [4, 2, 3, 4, 4, 0],
+     [2, 4, 3, 4, 1, 0]]
+    >>> tokenize(corpus, max_vocabulary=3, dim=4, pad=True)
+    [[4, 2, 3, 4],
+     [4, 1, 2, 3],
+     [4, 2, 3, 4],
+     [2, 4, 3, 4]]
+    """
     vectorizer = CountVectorizer(max_features=max_vocabulary)
     vectorizer.fit_transform(corpus)
 
