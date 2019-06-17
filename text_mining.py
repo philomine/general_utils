@@ -26,8 +26,8 @@ def plot_wordcloud(text, ngram_range=(1,1), max_words=200, strict_stopwords=None
         mode='RGBA', colormap='gnuplot', min_font_size=6
     ).generate_from_frequencies(words_and_frequencies)
     fig, ax = plt.subplots(figsize=(10,5))
-    plt.imshow(wordcloud)
-    plt.axis("off")
+    ax.imshow(wordcloud)
+    ax.axis("off")
 
     return fig
 

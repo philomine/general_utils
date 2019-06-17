@@ -19,21 +19,21 @@ def clear_nans(X, dont_drop=None):
 
     return X
 
-def progress_bar(iteration, total, length=50, empty_character=' ', fill_character='=', title='Progress'):
-    '''
+def progress_bar(iteration, total, length=50, decimals=1, empty_character=' ', fill_character='='):
+    """
     :Example:
     >>> for i, item in enumerate(items):
-    >>>     progress_bar(i, len(items))
+    >>>     progress_bar(i+1, len(items))
     >>>     # Do stuff...
     Progress: [==================================================] 100.0%
-    '''
+    """
     # Computing useful values
-    percent = ("{0:5.1f}").format(100 * (iteration+1 / float(total)))
-    filled_length = int(length * iteration+1 // total)
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filled_length = int(length * iteration // total)
     bar = fill_character * filled_length + empty_character * (length - filled_length)
 
     # Updating printed output
-    print('%s: [%s] %s%% ' % (title, bar, percent), end='\r')
+    print('\rProgress: [%s] %s%% ' % (bar, percent), end = '\r')
 
     # Printing a new line at the end of the loop
     if iteration == total:
