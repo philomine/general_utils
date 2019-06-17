@@ -32,6 +32,50 @@ def plot_wordcloud(text, ngram_range=(1,1), max_words=200, strict_stopwords=None
     return fig
 
 def vectorize(corpus, dim=None, vectorization_type=1, display=False):
+    """
+    :Example:
+    >>> corpus = [
+    >>>     'this is the first document',
+    >>>     'this document is the second document',
+    >>>     'here is the third one',
+    >>>     'is this the first document'
+    >>> ]
+    >>>
+    >>> # Default behavior
+    >>> vectorize(corpus)
+    [[1 1 0 1 0 0 1 0 1]
+     [1 0 0 1 0 1 1 0 1]
+     [0 0 1 1 1 0 1 1 0]
+     [1 1 0 1 0 0 1 0 1]]
+    >>>
+    >>> # The display option returns a pandas DataFrame
+    >>> vectorize(corpus, display=True)
+       document  first  here  is  one  second  the  third  this
+    0         1      1     0   1    0       0    1      0     1
+    1         1      0     0   1    0       1    1      0     1
+    2         0      0     1   1    1       0    1      1     0
+    3         1      1     0   1    0       0    1      0     1
+    >>>
+    >>> # The vectorization_type parameter determines the encoding type, defaults to 1
+    >>> #   1: One hot encoding
+    >>> #   2: Counting words
+    >>> #   3: Word frequency
+    >>> #   4: Term frequency inverse document frequency
+    >>> vectorize(corpus, display=True, vectorization_type=2)
+       document  first  here  is  one  second  the  third  this
+    0         1      1     0   1    0       0    1      0     1
+    1         2      0     0   1    0       1    1      0     1
+    2         0      0     1   1    1       0    1      1     0
+    3         1      1     0   1    0       0    1      0     1
+    >>>
+    >>> # The dim parameter determines the number of dimensions, taking the dim most used words
+    >>> vectorize(corpus, display=True, vectorization_type=3, dim=4)
+       document    is   the  this
+    0      0.25  0.25  0.25  0.25
+    1      0.40  0.20  0.20  0.20
+    2      0.00  0.50  0.50  0.00
+    3      0.25  0.25  0.25  0.25
+    """
     if dim is None:
         vocab_size = len(pd.unique([word for text in corpus for word in text.split()]))
         if vocab_size > 150:
