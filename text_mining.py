@@ -84,9 +84,9 @@ def vectorize(corpus, dim=None, vectorization_type=1, display=False):
     if vectorization_type == 1 or vectorization_type == 2:
         vectorizer = CountVectorizer(max_features=dim)
     elif vectorization_type == 3:
-        vectorizer = TfidfVectorizer(max_features=dim, use_idf=False)
+        vectorizer = TfidfVectorizer(max_features=dim, use_idf=False, norm='l1')
     elif vectorization_type == 4:
-        vectorizer = TfidfVectorizer(max_features=dim)
+        vectorizer = TfidfVectorizer(max_features=dim, norm='l1')
 
     X = np.array(vectorizer.fit_transform(corpus).todense())
     if vectorization_type == 1:
