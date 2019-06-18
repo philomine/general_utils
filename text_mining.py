@@ -31,7 +31,7 @@ def plot_wordcloud(text, ngram_range=(1,1), max_words=200, strict_stopwords=None
 
     return fig
 
-def vectorize(corpus, dim=None, vectorization_type=1, display=False):
+def vectorize_bagofwords(corpus, dim=None, vectorization_type=1, display=False):
     """
     :Example:
     >>> corpus = [
@@ -42,14 +42,14 @@ def vectorize(corpus, dim=None, vectorization_type=1, display=False):
     >>> ]
     >>>
     >>> # Default behavior
-    >>> vectorize(corpus)
+    >>> vectorize_bagofwords(corpus)
     [[1 1 0 1 0 0 1 0 1]
      [1 0 0 1 0 1 1 0 1]
      [0 0 1 1 1 0 1 1 0]
      [1 1 0 1 0 0 1 0 1]]
     >>>
     >>> # The display option returns a pandas DataFrame
-    >>> vectorize(corpus, display=True)
+    >>> vectorize_bagofwords(corpus, display=True)
        document  first  here  is  one  second  the  third  this
     0         1      1     0   1    0       0    1      0     1
     1         1      0     0   1    0       1    1      0     1
@@ -61,7 +61,7 @@ def vectorize(corpus, dim=None, vectorization_type=1, display=False):
     >>> #   2: Counting words
     >>> #   3: Word frequency
     >>> #   4: Term frequency inverse document frequency
-    >>> vectorize(corpus, display=True, vectorization_type=2)
+    >>> vectorize_bagofwords(corpus, display=True, vectorization_type=2)
        document  first  here  is  one  second  the  third  this
     0         1      1     0   1    0       0    1      0     1
     1         2      0     0   1    0       1    1      0     1
@@ -69,7 +69,7 @@ def vectorize(corpus, dim=None, vectorization_type=1, display=False):
     3         1      1     0   1    0       0    1      0     1
     >>>
     >>> # The dim parameter determines the number of dimensions, taking the dim most used words
-    >>> vectorize(corpus, display=True, vectorization_type=3, dim=4)
+    >>> vectorize_bagofwords(corpus, display=True, vectorization_type=3, dim=4)
        document    is   the  this
     0      0.25  0.25  0.25  0.25
     1      0.40  0.20  0.20  0.20
@@ -97,7 +97,7 @@ def vectorize(corpus, dim=None, vectorization_type=1, display=False):
 
     return X
 
-def tokenize(corpus, pad=False, dim=None, with_dictionary=False, max_vocabulary=None):
+def vectorize_encoding(corpus, pad=False, dim=None, with_dictionary=False, max_vocabulary=None):
     """
     If pad is False, dim is ignored
 
@@ -110,11 +110,11 @@ def tokenize(corpus, pad=False, dim=None, with_dictionary=False, max_vocabulary=
     >>> ]
     >>>
     >>> # Default behavior
-    >>> tokenize(corpus)
+    >>> vectorize_encoding(corpus)
     [[9, 4, 7, 2, 1], [9, 1, 4, 7, 6, 1], [3, 4, 7, 8, 5], [4, 9, 7, 2, 1]]
     >>>
     >>> # The with_dictionary parameter
-    >>> tokenize(corpus, with_dictionary=True)
+    >>> vectorize_encoding(corpus, with_dictionary=True)
     ([[9, 4, 7, 2, 1], [9, 1, 4, 7, 6, 1], [3, 4, 7, 8, 5], [4, 9, 7, 2, 1]],
      {'document': 1,
       'first': 2,
@@ -125,29 +125,29 @@ def tokenize(corpus, pad=False, dim=None, with_dictionary=False, max_vocabulary=
       'the': 7,
       'third': 8,
       'this': 9})
-    >>> tokenized_corpus, vocabulary = tokenize(corpus, with_dictionary=True)
+    >>> encoded_corpus, vocabulary = vectorize_encoding(corpus, with_dictionary=True)
     >>>
     >>> # The pad and dim parameters
-    >>> tokenize(corpus, pad=True)
+    >>> vectorize_encoding(corpus, pad=True)
     [[9, 4, 7, 2, 1, 0],
      [9, 1, 4, 7, 6, 1],
      [3, 4, 7, 8, 5, 0],
      [4, 9, 7, 2, 1, 0]]
-    >>> tokenize(corpus, pad=True, dim=4)
+    >>> vectorize_encoding(corpus, pad=True, dim=4)
     [[9, 4, 7, 2],
      [9, 1, 4, 7],
      [3, 4, 7, 8],
      [4, 9, 7, 2]]
     >>>
     >>> # The max_vocabulary parameter
-    >>> tokenize(corpus, max_vocabulary=3)
+    >>> vectorize_encoding(corpus, max_vocabulary=3)
     [[4, 2, 3, 4, 1], [4, 1, 2, 3, 4, 1], [4, 2, 3, 4, 4], [2, 4, 3, 4, 1]]
-    >>> tokenize(corpus, max_vocabulary=3, pad=True)
+    >>> vectorize_encoding(corpus, max_vocabulary=3, pad=True)
     [[4, 2, 3, 4, 1, 0],
      [4, 1, 2, 3, 4, 1],
      [4, 2, 3, 4, 4, 0],
      [2, 4, 3, 4, 1, 0]]
-    >>> tokenize(corpus, max_vocabulary=3, dim=4, pad=True)
+    >>> vectorize_encoding(corpus, max_vocabulary=3, dim=4, pad=True)
     [[4, 2, 3, 4],
      [4, 1, 2, 3],
      [4, 2, 3, 4],
