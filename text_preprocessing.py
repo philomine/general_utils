@@ -114,7 +114,7 @@ def preprocess_text(text, english=True, my_collocations=None, preprocessing_step
 
     return text
 
-def preprocess_texts_in_dataframe(df, columns, english=True, my_collocations=None, preprocessing_steps=[1, 2, 3, 4, 5, 6, 4]):
+def preprocess_corpus(corpus, english=True, my_collocations=None, preprocessing_steps=[1, 2, 3, 4, 5, 6, 4]):
     '''
     :param preprocessing_steps: Preprocessing steps to execute.
     1: lowercase,
@@ -124,8 +124,6 @@ def preprocess_texts_in_dataframe(df, columns, english=True, my_collocations=Non
     5: lemmatize_unigrams,
     6: join_collocations
     '''
-    df = df.copy()
-
     if my_collocations:
         global collocations
         collocations = my_collocations
@@ -136,18 +134,8 @@ def preprocess_texts_in_dataframe(df, columns, english=True, my_collocations=Non
         global lemmatizer
         lemmatizer = lemmatizer_fr
 
-    if not isinstance(df, pd.DataFrame):
-        raise ValueError("Expecting a pandas DataFrame for df argument")
-    if not isinstance(columns, list):
-        raise ValueError("Expecting a list for columns argument")
+    res = []
+    for text in corpus:
+        res.append(preprocess_text(text, preprocessing_steps=preprocessing_steps, _settings=False))
 
-    for column in columns:
-        if column not in df.columns:
-            raise ValueError(str(column) + " doesn't exist in dataframe's columns")
-        if not isinstance(df[column], object):
-            raise ValueError(str(column) + " column is not a text column")
-
-        for index, text in df[column].iteritems():
-            df.at[index, column] = preprocess(text, preprocessing_steps=preprocessing_steps)
-
-    return df
+    return res
