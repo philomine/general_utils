@@ -31,7 +31,7 @@ def plot_wordcloud(text, ngram_range=(1,1), max_words=200, strict_stopwords=None
 
     return fig
 
-def vectorize_bagofwords(corpus, dim=None, vectorization_type=1, display=False):
+def vectorize_bagofwords(corpus, dim=None, vectorization_type=4, display=False):
     """
     :Example:
     >>> corpus = [
