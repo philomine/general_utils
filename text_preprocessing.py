@@ -76,7 +76,7 @@ def join_collocations(text, my_collocations=None):
         text = _join_collocation(text, collocation)
     return text
 
-def preprocess(text, my_collocations=None, preprocessing_steps=[1, 2, 3, 4, 5, 6, 4]):
+def preprocess_text(text, english=True, my_collocations=None, preprocessing_steps=[1, 2, 3, 4, 5, 6, 4], _settings=True):
     '''
     :param preprocessing_steps: Preprocessing steps to execute.
     1: lowercase,
@@ -86,9 +86,16 @@ def preprocess(text, my_collocations=None, preprocessing_steps=[1, 2, 3, 4, 5, 6
     5: lemmatize_unigrams,
     6: join_collocations
     '''
-    if my_collocations:
-        global collocations
-        collocations = my_collocations
+    if _settings:
+        if my_collocations:
+            global collocations
+            collocations = my_collocations
+
+        if not english:
+            global stopwords
+            stopwords = stopwords_fr
+            global lemmatizer
+            lemmatizer = lemmatizer_fr
 
     if str(text) == 'nan':
         return np.nan
