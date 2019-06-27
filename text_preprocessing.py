@@ -1,3 +1,8 @@
+################################################################################
+# The text_preprocessing module wraps a few functions useful to clean texts
+# Packages you may need to install : french_lefff_lemmatizer, nltk
+################################################################################
+
 import re
 import numpy as np
 import pandas as pd

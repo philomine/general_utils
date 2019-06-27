@@ -1,3 +1,13 @@
+################################################################################
+# The text_mining module wraps a few functions useful for basic text mining
+#     * get_m_most_frequent_ngrams
+#     * plot_wordcloud
+#     * vectorize_bagofwords
+#     * vectorize_encoding
+#     * alias vectorize_bow (= vectorize_bagofwords)
+# Packages you may need to install : scikit-learn, wordcloud
+################################################################################
+
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
