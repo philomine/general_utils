@@ -180,3 +180,6 @@ def vectorize_encoding(corpus, pad=False, dim=None, with_dictionary=False, max_v
         return corpus, vocabulary
     else:
         return corpus
+
+# Alias
+vectorize_bow = vectorize_bagofwords
