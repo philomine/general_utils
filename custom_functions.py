@@ -31,7 +31,7 @@ def progress_bar(iteration, total, length=50, empty_character=' ', fill_characte
     # Computing useful values
     percent = ("{0:5.1f}").format(100 * ((iteration+1) / float(total)))
     filled_length = int(length * (iteration+1) // total)
-    bar = fill_character * filled_length + empty_character * (length - filled_length)
+    bar = fill_character * (filled_length-1) + ">" + empty_character * (length - filled_length)
 
     # Updating printed output
     print('%s: [%s] %s%% ' % (title, bar, percent), end='\r')
