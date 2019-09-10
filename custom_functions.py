@@ -1,3 +1,7 @@
+# import sys
+# import os
+# sys.path.append(os.path.expanduser("~/Projects/Python/python_custom_functions"))
+
 import numpy as np
 import pandas as pd
 from scipy import stats
