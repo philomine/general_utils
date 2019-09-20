@@ -23,25 +23,26 @@ def clear_nans(X, dont_drop=None):
 
     return X
 
-def progress_bar(iteration, total, length=50, empty_character=' ', fill_character='=', title='Progress'):
+def progress_bar(i, n):
     '''
-    Careful: iteration is meant to go from 0 to total-1, just like in the example
+    Careful: i is meant to go from 0 to n-1, just like in the example
     :Example:
     >>> for i, item in enumerate(items):
     >>>     progress_bar(i, len(items))
     >>>     # Do stuff...
-    Progress: [==================================================] 100.0%
+    [=================================================>] 100.0%
     '''
-    # Computing useful values
-    percent = ("{0:5.1f}").format(100 * ((iteration+1) / float(total)))
-    filled_length = int(length * (iteration+1) // total)
-    bar = fill_character * (filled_length-1) + ">" + empty_character * (length - filled_length)
+    if np.floor(1000 * (i+1)/n) != np.floor(1000 * i/n):
+        advancement = (i+1) / n
+        percent = "{0:5.1f}".format(100 * advancement)
 
-    # Updating printed output
-    print('%s: [%s] %s%% ' % (title, bar, percent), end='\r')
+        bar_size = 50
+        filled_bar_size = int(np.ceil(advancement * bar_size))
+        bar = "[" + (filled_bar_size - 1) * "=" + ">" + (bar_size - filled_bar_size) * " " + "]"
 
-    # Printing a new line at the end of the loop
-    if iteration+1 == total:
-        print()
+        print(bar + " " + percent + "%", end='\r')
+
+    if i+1 == n:
+        print("")
 
     return None
