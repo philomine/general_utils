@@ -5,6 +5,7 @@
 import numpy as np
 import pandas as pd
 from scipy import stats
+from functools import wraps # This convenience func preserves name and docstring
 
 def number_of_nan(X, axis = 0):
     X = np.array(X, dtype = 'float')
