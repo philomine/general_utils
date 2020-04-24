@@ -190,8 +190,8 @@ def time_series_distribution(
     title=None,
     filename=None,
     sample_info=True,
-    log_scale=True,
-    nbins=300,
+    log_scale=False,
+    nbins=200,
     time_freq="D",
     **kwargs,
 ):
@@ -294,7 +294,7 @@ def numeric_distribution(
     sample_info=True,
     num_info=True,
     log_scale=True,
-    nbins=300,
+    nbins=200,
     **kwargs,
 ):
     if len(np.unique(sample)) <= 20:
