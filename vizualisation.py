@@ -97,7 +97,6 @@ def dist_table_pie_chart(
     other_cat=True,
     **kwargs,
 ):
-    print(other_cat)
     labels = sample_dist_table.value.map(lambda x: str(x))
     values = sample_dist_table.freq
 
