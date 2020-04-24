@@ -1,1 +1,12 @@
+*.ipynb
+*.html
 *.pyc
+*.png
+*.xls
+*.xlsx
+*.csv
+*.tsv
+*.pickle
+*.feather
+*.parquet
+*.npy
