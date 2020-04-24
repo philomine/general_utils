@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from .data_analysis import dist
+from data_analysis import get_dist_table
 
 
 def stringlist_length(stringlist):
@@ -23,9 +23,14 @@ def append_stringlists(stringlists):
 def stringlists_dist(stringlists, normalize=True):
     values = np.unique(append_stringlists(stringlists))
     res = pd.Series(index=values, data=0)
+    res["nan"] = 0
     for stringlist in stringlists:
         if isinstance(stringlist, str) and (stringlist != ""):
-            stringlist_dist = dist(stringlist.split(";"), normalize=normalize)
+            stringlist_dist = get_dist_table(
+                stringlist.split(";"), normalize=normalize
+            )
             stringlist_dist = stringlist_dist.set_index("value").freq
             res[stringlist_dist.index] += stringlist_dist.values
+        else:
+            res["nan"] += 1
     return pd.DataFrame({"value": res.index, "freq": res.values})

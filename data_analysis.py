@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 
-def string_format(val):
+def get_string_format(val):
     if not isinstance(val, str):
         res = np.nan
     else:
@@ -23,8 +23,8 @@ def string_format(val):
     return res
 
 
-def dist(x, normalize=False):
-    u, c = np.unique(x, return_counts=True)
+def get_dist_table(sample, normalize=False):
+    u, c = np.unique(sample, return_counts=True)
     if normalize:
         total = np.sum(c)
         c = c / total
