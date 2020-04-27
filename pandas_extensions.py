@@ -5,9 +5,9 @@ import plotly.express as px
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
 
-from plotly_reporter import generate_report
-from tools import partition_n_into_k_subsets
-from vizualisation import (
+from .plotly_reporter import generate_report
+from .tools import partition_n_into_k_subsets
+from .vizualisation import (
     _add_plotly_info,
     _save_plotly_fig,
     _set_plotly_layout,
@@ -62,6 +62,7 @@ setattr(pd.DataFrame, "dropna_analysis", dropna_analysis)
 
 
 def column_analysis(self):
+    """ Personalised 'describe' """
     analysis = pd.concat(
         [self.nunique(), self.shape[0] - self.isna().sum()], axis=1
     )
@@ -145,6 +146,8 @@ setattr(pd.DataFrame, "is_id", property(is_id))
 
 
 def divide_dataset(self, nb_div, shuffle=False):
+    """ Divides a pandas dataframe into nb_div dataframes, whose sizes are 
+    determined by the partition_n_into_k_subsets function """
     n = self.shape[0]
     subset_sizes = partition_n_into_k_subsets(n=n, k=nb_div)
 
@@ -166,6 +169,8 @@ setattr(pd.DataFrame, "divide_dataset", divide_dataset)
 
 
 def nan_figure(self):
+    """ Plots a pie chart indicating the number of missing values in a series, 
+    for fast viz"""
     nb_empty = np.sum(self.isna())
     nb_filled = np.sum(~self.isna())
     nan_dist = pd.DataFrame(
@@ -180,6 +185,7 @@ setattr(pd.Series, "nan_figure", property(nan_figure))
 
 
 def plotly_report(self, df_name, path, other_contents=[]):
+    """ Generates a plotly report with vizualisation of each columns """
     analysis = self.column_analysis()
     interesting_columns = analysis[analysis.interesting].index.values
 
@@ -246,6 +252,10 @@ def _reset_kwargs(kwargs):
 def plot_distribution(
     self, sample_info=True, filename=None, plot_type=None, **kwargs
 ):
+    """ Plots the distribution of a pd.Series depending on its type
+    Relies on the vizualisation module's plotting functions and makes it easy 
+    to handle missing values (adds missing values info in sample info).
+    """
     if self.name is None:
         self.name = "unknown sample"
 

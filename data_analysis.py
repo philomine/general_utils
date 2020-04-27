@@ -5,6 +5,7 @@ import pandas as pd
 
 
 def get_string_format(val):
+    """ Takes val and returns string format """
     if not isinstance(val, str):
         res = np.nan
     else:
@@ -24,6 +25,11 @@ def get_string_format(val):
 
 
 def get_dist_table(sample, normalize=False):
+    """ Returns the dist table of a sample
+    A dist table is a pd.DataFrame with two columns: 
+        - value: list of values
+        - freq: frequency of those values
+    """
     u, c = np.unique(sample, return_counts=True)
     if normalize:
         total = np.sum(c)
