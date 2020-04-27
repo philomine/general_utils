@@ -52,6 +52,7 @@ All functions and classes have a doctring. However, the vizualisation API might
 need some extra explanation. Several viz functions interact in the following
 way:
 
+```
 pd.plot_distribution
 |-- numeric_distribution
 |-- time_series_distribution
@@ -60,6 +61,7 @@ pd.plot_distribution
     |   |-- dist_table_pie_chart
     |-- sample_bar_chart
         |-- dist_table_bar_chart
+```
 
 You can call any of these functions independantly. However, calling one of
 these will call all underlying functions.
