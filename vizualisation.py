@@ -64,7 +64,7 @@ def _save_plotly_fig(fig, filename=None):
         plotly.offline.plot(fig, filename=filename, auto_open=False)
 
 
-def reset_kwargs(kwargs):
+def _reset_kwargs(kwargs):
     kwargs["title"] = None
     kwargs["filename"] = None
     kwargs["sample_info"] = False
@@ -79,7 +79,7 @@ def sample_pie_chart(
     sample_dist_table = get_dist_table(sample)
 
     # Plotting the figure
-    fig = dist_table_pie_chart(sample_dist_table, **reset_kwargs(kwargs))
+    fig = dist_table_pie_chart(sample_dist_table, **_reset_kwargs(kwargs))
 
     # Layout and saving parameters
     fig = _set_plotly_layout(fig, title=title, log_scale=False)
@@ -136,7 +136,7 @@ def sample_bar_chart(
     sample_dist_table = get_dist_table(sample)
 
     # Plotting the figure
-    fig = dist_table_bar_chart(sample_dist_table, **reset_kwargs(kwargs))
+    fig = dist_table_bar_chart(sample_dist_table, **_reset_kwargs(kwargs))
 
     # Layout and saving parameters
     fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
@@ -190,8 +190,8 @@ def time_series_distribution(
     title=None,
     filename=None,
     sample_info=True,
-    log_scale=True,
-    nbins=300,
+    log_scale=False,
+    nbins=200,
     time_freq="D",
     **kwargs,
 ):
@@ -294,12 +294,12 @@ def numeric_distribution(
     sample_info=True,
     num_info=True,
     log_scale=True,
-    nbins=300,
+    nbins=200,
     **kwargs,
 ):
     if len(np.unique(sample)) <= 20:
         fig = text_distribution(
-            [str(val) for val in sample], **reset_kwargs(kwargs)
+            [str(val) for val in sample], **_reset_kwargs(kwargs)
         )
     else:
         sample_range = int(np.ceil(np.max(sample) - np.min(sample)))
@@ -335,12 +335,12 @@ def text_distribution(
             lengths = pd.Series([len(val) for val in sample])
             fig = numeric_distribution(lengths)
         else:
-            fig = text_distribution(formats, **reset_kwargs(kwargs))
+            fig = text_distribution(formats, **_reset_kwargs(kwargs))
     else:
         if text_as_pie:
-            fig = sample_pie_chart(sample, **reset_kwargs(kwargs))
+            fig = sample_pie_chart(sample, **_reset_kwargs(kwargs))
         else:
-            fig = sample_bar_chart(sample, **reset_kwargs(kwargs))
+            fig = sample_bar_chart(sample, **_reset_kwargs(kwargs))
     # Layout and saving parameters
     fig = _set_plotly_layout(
         fig, title=title, log_scale=(log_scale and not text_as_pie)

@@ -75,7 +75,7 @@ class MLLogger:
         ----------
         result_name : string
             The name you'll find your result under (can be algorithm named 
-            joined with its parameteres for example)
+            joined with its parameters for example)
         
         model : trained object with a predict method
             The trained model on which the test was made
