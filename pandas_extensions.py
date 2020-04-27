@@ -73,7 +73,7 @@ def column_analysis(self):
             __, counts = np.unique(self[column].dropna(), return_counts=True)
         except TypeError:
             __, counts = np.unique(
-                [str(val) for val in self[column].dropna()], return_counts=True
+                self[column].dropna().map(str), return_counts=True
             )
         nb_group.append(np.sum(counts > 1))
     analysis["nb_group"] = nb_group
@@ -108,28 +108,39 @@ setattr(pd.DataFrame, "column_analysis", column_analysis)
 
 
 def is_id(self):
-    series = self.copy()
+    """ Checks wether pd.Series or pd.DataFrame is an id.
+    For pd.Series, checks wether it can be used as a primary key. For a 
+    pd.DataFrame, checks if all the columns can be used altogether as a primary 
+    key. 
 
-    start_size = series.size
-    series = series.dropna().drop_duplicates()
-    end_size = series.size
+    Example
+    -------
+    >>> series = pd.Series([1, 1, 2])
+    >>> series.is_id
+    False
+    >>> series = pd.Series([1, 2, 3])
+    >>> series.is_id
+    True
+    >>> df = pd.DataFrame({'a': [1, 1, 2]})
+    >>> df.is_id
+    False
+    >>> df = pd.DataFrame({
+    >>>     'a': [1, 1, 2],
+    >>>     'b': [1, 2, 1],
+    >>> })
+    >>> df.is_id
+    True
+    """
+    x = self.copy()
+
+    start_size = x.shape[0]
+    x = x.dropna().drop_duplicates()
+    end_size = x.shape[0]
 
     return start_size == end_size
 
 
 setattr(pd.Series, "is_id", property(is_id))
-
-
-def is_id(self):
-    df = self.copy()
-
-    start_size = df.shape[0]
-    df = df.dropna().drop_duplicates()
-    end_size = df.shape[0]
-
-    return start_size == end_size
-
-
 setattr(pd.DataFrame, "is_id", property(is_id))
 
 
@@ -177,7 +188,7 @@ def plotly_report(self, df_name, path, other_contents=[]):
         ("pandas", analysis),
     ]
     for column in interesting_columns:
-        contents.append(("fig", self[column].distribution_figure))
+        contents.append(("fig", self[column].plot_distribution()))
     contents += other_contents
 
     generate_report(path, contents)
@@ -217,7 +228,8 @@ def _add_sample_info(fig, sample_size, nb_nan):
     text = (
         f"Number of values: {sample_size}"
         + "<br>"
-        + f"Filled: {sample_size - nb_nan} ({round(100 * (sample_size - nb_nan) / sample_size, 2)}%)"
+        + f"Filled: {sample_size - nb_nan} "
+        + "({round(100 * (sample_size - nb_nan) / sample_size, 2)}%)"
         + "<br>"
         + f"Empty: {nb_nan} ({round(100 * nb_nan / sample_size, 2)}%)"
     )
@@ -225,7 +237,7 @@ def _add_sample_info(fig, sample_size, nb_nan):
     return fig
 
 
-def reset_kwargs(kwargs):
+def _reset_kwargs(kwargs):
     kwargs["filename"] = None
     kwargs["sample_info"] = False
     return kwargs
@@ -238,43 +250,24 @@ def plot_distribution(
         self.name = "unknown sample"
 
     dtype_distribution = {
-        "object": _text_distribution,
-        "str": _text_distribution,
-        "datetime64[ns]": _time_series_distribution,
-        "int64": _numeric_distribution,
-        "float64": _numeric_distribution,
+        "object": text_distribution,
+        "str": text_distribution,
+        "datetime64[ns]": time_series_distribution,
+        "int64": numeric_distribution,
+        "float64": numeric_distribution,
     }
     if plot_type is None:
         plot_type = str(self.dtype)
 
     dtype_distribution = dtype_distribution[plot_type]
-    fig = dtype_distribution(self, **reset_kwargs(kwargs))
+    fig = dtype_distribution(
+        self.copy().dropna(),
+        title=f"Distribution of {self.name}",
+        **_reset_kwargs(kwargs),
+    )
     if sample_info:
         fig = _add_sample_info(fig, self.shape[0], np.sum(self.isna()))
     _save_plotly_fig(fig, filename=filename)
-    return fig
-
-
-def _time_series_distribution(self, **kwargs):
-    fig = time_series_distribution(
-        self.copy().dropna(),
-        title=f"Distribution of time series {self.name}",
-        **kwargs,
-    )
-    return fig
-
-
-def _numeric_distribution(self, **kwargs):
-    fig = numeric_distribution(
-        self.copy().dropna(), title=f"Distribution of {self.name}", **kwargs
-    )
-    return fig
-
-
-def _text_distribution(self, **kwargs):
-    fig = text_distribution(
-        self.copy().dropna(), title=f"Distribution of {self.name}", **kwargs
-    )
     return fig
 
 
