@@ -40,6 +40,32 @@ def stringlist_unique(stringlist):
     return stringlist
 
 
+def translate_stringlist(stringlist, dictionary):
+    """ Replaces values in stringlist by its correspondance in dictionary
+
+    Parameters
+    ----------
+    stringlist: str
+        List of values concatenated in a string with ';' separator.
+    dictionary: pd.DataFrame
+        Value mapping. Must have 'old' and 'new' columns.
+    """
+    if isinstance(stringlist, str) and stringlist != "":
+        dictionary = dictionary.set_index("old")["new"]
+        stringlist = stringlist.split(";")
+        new_stringlist = []
+        for value in stringlist:
+            try:
+                new_stringlist.append(dictionary[value])
+            except TypeError:
+                new_stringlist.append(value)
+        stringlist = new_stringlist
+        stringlist = ";".join(stringlist)
+    else:
+        stringlist = np.nan
+    return stringlist
+
+
 def append_stringlists(stringlists):
     """ Returns a stringlist composed of all stringlists concatenated
     A stringlist is a list of values concatenated in a string with ';' 

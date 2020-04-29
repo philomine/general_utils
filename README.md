@@ -30,6 +30,7 @@ functions
 - stringlist_utils
   - function stringlist_length
   - function stringlist_unique
+  - function translate_stringlist
   - function append_stringlists
   - function stringlists_dist
 - tools
