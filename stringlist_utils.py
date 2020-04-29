@@ -55,6 +55,10 @@ def append_stringlists(stringlists):
     for stringlist in stringlists:
         if isinstance(stringlist, str) and (stringlist != ""):
             res += stringlist.split(";")
+    if len(res) > 0:
+        res = ";".join(res)
+    else:
+        res = np.nan
     return res
 
 
