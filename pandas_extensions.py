@@ -235,7 +235,7 @@ def _add_sample_info(fig, sample_size, nb_nan):
         f"Number of values: {sample_size}"
         + "<br>"
         + f"Filled: {sample_size - nb_nan} "
-        + "({round(100 * (sample_size - nb_nan) / sample_size, 2)}%)"
+        + f"({round(100 * (sample_size - nb_nan) / sample_size, 2)}%)"
         + "<br>"
         + f"Empty: {nb_nan} ({round(100 * nb_nan / sample_size, 2)}%)"
     )
