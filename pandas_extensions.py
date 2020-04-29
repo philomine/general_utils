@@ -259,6 +259,9 @@ def plot_distribution(
     if self.name is None:
         self.name = "unknown sample"
 
+    if str(self.dtype)[:6] == "period":
+        self = self.map(lambda x: x.to_timestamp(), na_action="ignore")
+
     dtype_distribution = {
         "object": text_distribution,
         "str": text_distribution,
