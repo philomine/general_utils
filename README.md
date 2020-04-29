@@ -29,6 +29,7 @@ functions
   - function generate_report
 - stringlist_utils
   - function stringlist_length
+  - function stringlist_unique
   - function append_stringlists
   - function stringlists_dist
 - tools

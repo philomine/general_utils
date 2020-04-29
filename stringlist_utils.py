@@ -22,6 +22,24 @@ def stringlist_length(stringlist):
     return length
 
 
+def stringlist_unique(stringlist):
+    """ Applies np.unique to the stringlist 
+    A stringlist is a list of values concatenated in a string with ';' 
+    separator. It's useful for labeling observations (an observation can have 
+    0, 1 or several labels, which will be concatenated in a stringlist).
+
+    Parameters
+    ----------
+    stringlist: str
+        List of values concatenated in a string with ';' separator.
+    """
+    if isinstance(stringlist, str) and (stringlist != ""):
+        stringlist = ";".join(np.unique(stringlist.split(";")))
+    else:
+        stringlist = np.nan
+    return stringlist
+
+
 def append_stringlists(stringlists):
     """ Returns a stringlist composed of all stringlists concatenated
     A stringlist is a list of values concatenated in a string with ';' 
