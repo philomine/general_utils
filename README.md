@@ -38,6 +38,7 @@ functions
   - function parent_dir
   - function elapsed_time
   - function partition_n_into_k_subsets
+  - function df_explorer
 - vizualisation
   - function sample_pie_chart
   - function dist_table_pie_chart
