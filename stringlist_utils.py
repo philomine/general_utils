@@ -40,7 +40,7 @@ def stringlist_unique(stringlist):
     return stringlist
 
 
-def translate_stringlist(stringlist, dictionary):
+def translate_stringlist(stringlist, dictionary, default="nan"):
     """ Replaces values in stringlist by its correspondance in dictionary
 
     Parameters
@@ -49,16 +49,24 @@ def translate_stringlist(stringlist, dictionary):
         List of values concatenated in a string with ';' separator.
     dictionary: pd.DataFrame
         Value mapping. Must have 'old' and 'new' columns.
+    default: str or None (optional, default "nan")
+        Default value to set if no new value is found. Set to None to not map
+        the value if there's no value to map to.
     """
     if isinstance(stringlist, str) and stringlist != "":
+        dictionary = dictionary.dropna()
+        dictionary["old"] = dictionary["old"].map(str)
         dictionary = dictionary.set_index("old")["new"]
+
         stringlist = stringlist.split(";")
         new_stringlist = []
         for value in stringlist:
             try:
-                new_stringlist.append(dictionary[value])
+                new_stringlist.append(str(dictionary[value]))
             except TypeError:
-                new_stringlist.append(value)
+                new_stringlist.append(default)
+            except KeyError:
+                new_stringlist.append(default)
         stringlist = new_stringlist
         stringlist = ";".join(stringlist)
     else:
