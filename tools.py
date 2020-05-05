@@ -70,7 +70,7 @@ def df_explorer(df, save_path=None, label=True):
         add a label/comment/whatever.
     """
     try:
-        results = pd.DataFrame(columns=df.columns + ["labels"])
+        results = pd.DataFrame()
         for __, row in df.iterrows():
             # Printing instructions
             clear_terminal()
