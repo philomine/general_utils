@@ -35,3 +35,10 @@ def get_dist_table(sample, normalize=False):
         total = np.sum(c)
         c = c / total
     return pd.DataFrame({"value": u, "freq": c})
+
+
+def get_sample(dist_table):
+    sample = []
+    for __, row in dist_table.iterrows():
+        sample += [row["value"]] * int(row["freq"])
+    return sample
