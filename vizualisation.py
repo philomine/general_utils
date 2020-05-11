@@ -242,7 +242,6 @@ def sample_bar_chart(
     title=None,
     filename=None,
     sample_info=True,
-    num_info=False,
     log_scale=True,
     **kwargs,
 ):
@@ -262,25 +261,17 @@ def sample_bar_chart(
     sample_info: bool (optional, default: True)
         Wether to write the sample size (set to True because it's usually 
         useful to have this basic info).
-    num_info: bool (optional, default: False)
-        Wether to write the numerical info on the plot.
     log_scale: bool (optional, default: True)
         Wether to set the y axis scale to be logarithmic.
     """
     # Plotting the figure
-    numeric_sample = np.all(list(map(_str_is_float, map(str, sample))))
-    if numeric_sample:
-        fig = numeric_distribution(sample, **_reset_kwargs(kwargs))
-    else:
-        sample_dist_table = get_dist_table(sample)
-        fig = dist_table_bar_chart(sample_dist_table, **_reset_kwargs(kwargs))
+    sample_dist_table = get_dist_table(sample)
+    fig = dist_table_bar_chart(sample_dist_table, **_reset_kwargs(kwargs))
 
     # Layout and saving parameters
     fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
     if sample_info:
         fig = _add_sample_info(fig, len(sample))
-    if num_info:
-        fig = _add_num_info(fig, [float(val) for val in sample])
     _save_plotly_fig(fig, filename=filename)
     return fig
 
@@ -290,7 +281,6 @@ def dist_table_bar_chart(
     title=None,
     filename=None,
     sample_info=True,
-    num_info=False,
     log_scale=True,
     **kwargs,
 ):
@@ -313,8 +303,6 @@ def dist_table_bar_chart(
     sample_info: bool (optional, default: True)
         Wether to write the sample size (set to True because it's usually 
         useful to have this basic info).
-    num_info: bool (optional, default: False)
-        Wether to write the numerical info on the plot.
     log_scale: bool (optional, default: True)
         Wether to set the y axis scale to be logarithmic.
     """
@@ -322,21 +310,14 @@ def dist_table_bar_chart(
     values = sample_dist_table.freq
 
     # Plotting the figure
-    numeric_sample = np.all(labels.map(str).map(_str_is_float))
-    if numeric_sample:
-        sample = list(map(float, get_sample(sample_dist_table)))
-        fig = numeric_distribution(sample, **_reset_kwargs(kwargs))
-    else:
-        fig = go.Figure(
-            [go.Bar(x=labels, y=values, text=values, textposition="auto")]
-        )
+    fig = go.Figure(
+        [go.Bar(x=labels, y=values, text=values, textposition="auto")]
+    )
 
     # Layout and saving parameters
     fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
     if sample_info:
         fig = _add_sample_info(fig, sample_size=int(np.sum(values)))
-    if num_info:
-        fig = _add_num_info(fig, [float(val) for val in sample])
     _save_plotly_fig(fig, filename=filename)
     return fig
 
