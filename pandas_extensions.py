@@ -12,9 +12,9 @@ from .vizualisation import (
     _save_plotly_fig,
     _set_plotly_layout,
     dist_table_pie_chart,
-    numeric_distribution,
-    text_distribution,
-    time_series_distribution,
+    sample_numeric_distribution,
+    sample_text_distribution,
+    sample_time_series_distribution,
 )
 
 
@@ -263,11 +263,11 @@ def plot_distribution(
         self = self.map(lambda x: x.to_timestamp(), na_action="ignore")
 
     dtype_distribution = {
-        "object": text_distribution,
-        "str": text_distribution,
-        "datetime64[ns]": time_series_distribution,
-        "int64": numeric_distribution,
-        "float64": numeric_distribution,
+        "object": sample_text_distribution,
+        "str": sample_text_distribution,
+        "datetime64[ns]": sample_time_series_distribution,
+        "int64": sample_numeric_distribution,
+        "float64": sample_numeric_distribution,
     }
     if plot_type is None:
         plot_type = str(self.dtype)

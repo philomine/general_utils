@@ -38,6 +38,11 @@ def get_dist_table(sample, normalize=False):
 
 
 def get_sample(dist_table):
+    """ Returns the sample of a dist table 
+    A dist table is a pd.DataFrame with two columns: 
+        - value: list of values
+        - freq: frequency of those values
+    """
     sample = []
     for __, row in dist_table.iterrows():
         sample += [row["value"]] * int(row["freq"])
