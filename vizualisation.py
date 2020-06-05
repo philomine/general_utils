@@ -615,7 +615,7 @@ def sample_numeric_distribution(
         )
     else:
         sample_range = int(np.ceil(np.max(sample) - np.min(sample)))
-        if sample_range > nbins:
+        if sample_range > nbins or len(np.unique(sample)) > nbins:
             fig = go.Figure(data=[go.Histogram(x=sample, nbinsx=nbins)])
         else:
             fig = go.Figure(data=[go.Histogram(x=sample)])
