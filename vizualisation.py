@@ -658,7 +658,7 @@ def dist_table_text_distribution(
     filename=None,
     sample_info=True,
     log_scale=True,
-    text_as_pie=True,
+    text_as_pie=False,
     nbins=20,
     **kwargs,
 ):
@@ -681,7 +681,7 @@ def dist_table_text_distribution(
         useful to have this basic info).
     log_scale: bool (optional, default: True)
         Wether to set the y axis scale to be logarithmic.
-    text_as_pie: bool (optional, default: True)
+    text_as_pie: bool (optional, default: False)
         Attributes values are plotted either as a pie or bar chart.
     nbins: int (optional, default: 20)
         Number of maximum number of values to plot. For attributes values, it 
@@ -711,7 +711,7 @@ def sample_text_distribution(
     filename=None,
     sample_info=True,
     log_scale=True,
-    text_as_pie=True,
+    text_as_pie=False,
     nbins=20,
     **kwargs,
 ):
@@ -731,7 +731,7 @@ def sample_text_distribution(
         useful to have this basic info).
     log_scale: bool (optional, default: True)
         Wether to set the y axis scale to be logarithmic.
-    text_as_pie: bool (optional, default: True)
+    text_as_pie: bool (optional, default: False)
         Attributes values are plotted either as a pie or bar chart.
     nbins: int (optional, default: 20)
         Number of maximum number of values to plot. For attributes values, it 
@@ -739,15 +739,14 @@ def sample_text_distribution(
         We'll evaluate if there's a limited number of formats for the sample, 
         and if not we'll resort to plotting the length of the different values.
     """
-    sample_distribution = get_dist_table(sample)
-    if sample_distribution.shape[0] > nbins:
-        formats = list(map(lambda x: get_string_format(x), sample))
-        format_distribution = get_dist_table(formats)
-        if format_distribution.shape[0] > nbins:
-            lengths = pd.Series([len(val) for val in sample])
-            fig = sample_numeric_distribution(lengths)
-        else:
-            fig = sample_text_distribution(formats, **_reset_kwargs(kwargs))
+    if len(np.unique(sample)) > nbins:
+        sample_dist_table = get_dist_table(sample).sort_values(
+            "freq", ascending=False
+        )
+        sample_dist_table["value"] = np.arange(sample_dist_table.shape[0])
+        fig = dist_table_numeric_distribution(
+            sample_dist_table, **_reset_kwargs(kwargs)
+        )
     else:
         if text_as_pie:
             fig = sample_pie_chart(sample, **_reset_kwargs(kwargs))
