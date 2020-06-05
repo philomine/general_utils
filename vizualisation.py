@@ -668,7 +668,7 @@ def dist_table_attribute_distribution(
     """
     # Plotting the figure
     dist_table_sample = get_sample(dist_table)
-    fig = sample_numeric_distribution(
+    fig = sample_attribute_distribution(
         dist_table_sample, **_reset_kwargs(kwargs)
     )
 
