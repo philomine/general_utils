@@ -391,37 +391,9 @@ def sample_time_series_distribution(
     filename: str or None (optional, default: None)
         The path where to save the plot. Set to None to not save the plot.
     """
-    if freq is None:
-        if len(np.unique(sample)) > nbins:
-            sample = list(map(lambda x: x.replace(second=0), sample))
-            if len(np.unique(sample)) > nbins:
-                sample = list(map(lambda x: x.replace(minute=0), sample))
-                if len(np.unique(sample)) > nbins:
-                    sample = list(map(lambda x: x.replace(hour=0), sample))
-                    if len(np.unique(sample)) > nbins:
-                        sample = list(map(lambda x: x.replace(day=1), sample))
-                        if len(np.unique(sample)) > nbins:
-                            sample = list(
-                                map(lambda x: x.replace(month=1), sample)
-                            )
-    else:
-        freq_dict = {"s": 0, "m": 1, "H": 2, "D": 3, "M": 4, "Y": 5}
-        num_freq = freq_dict[freq]
-        if num_freq > 0:
-            sample = list(map(lambda x: x.replace(second=0), sample))
-            if num_freq > 1:
-                sample = list(map(lambda x: x.replace(minute=0), sample))
-                if num_freq > 2:
-                    sample = list(map(lambda x: x.replace(hour=0), sample))
-                    if num_freq > 3:
-                        sample = list(map(lambda x: x.replace(day=1), sample))
-                        if num_freq > 4:
-                            sample = list(
-                                map(lambda x: x.replace(month=1), sample)
-                            )
     dist_table = get_dist_table(sample)
     fig = dist_table_time_series_distribution(
-        dist_table, freq=freq, nbins=nbins, **_reset_kwargs(kwargs)
+        dist_table, **_reset_kwargs(kwargs)
     )
     fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
     if sample_info:
@@ -465,34 +437,39 @@ def dist_table_time_series_distribution(
         The path where to save the plot. Set to None to not save the plot.
     """
     if freq is None:
-        if len(dist_table.value) > nbins:
-            sample = list(map(lambda x: x.replace(second=0), dist_table.value))
+        timedelta = np.max(dist_table.value) - np.min(dist_table.value)
+        seconds = timedelta.days * 24 * 60 * 60
+        if len(dist_table.value) > nbins or seconds > nbins:
+            dist_table.value = dist_table.value.map(
+                lambda x: x.replace(second=0)
+            )
             dist_table = dist_table.groupby("value").sum().reset_index()
-            if len(dist_table.value) > nbins:
-                sample = list(
-                    map(lambda x: x.replace(minute=0), dist_table.value)
+            minutes = timedelta.days * 24 * 60
+            if len(dist_table.value) > nbins or minutes > nbins:
+                dist_table.value = dist_table.value.map(
+                    lambda x: x.replace(minute=0)
                 )
                 dist_table = dist_table.groupby("value").sum().reset_index()
-                if len(dist_table.value) > nbins:
-                    sample = list(
-                        map(lambda x: x.replace(hour=0), dist_table.value)
+                hours = timedelta.days * 24
+                if len(dist_table.value) > nbins or hours > nbins:
+                    dist_table.value = dist_table.value.map(
+                        lambda x: x.replace(hour=0)
                     )
                     dist_table = (
                         dist_table.groupby("value").sum().reset_index()
                     )
-                    if len(dist_table.value) > nbins:
-                        sample = list(
-                            map(lambda x: x.replace(day=1), dist_table.value)
+                    days = timedelta.days
+                    if len(dist_table.value) > nbins or days > nbins:
+                        dist_table.value = dist_table.value.map(
+                            lambda x: x.replace(day=1)
                         )
                         dist_table = (
                             dist_table.groupby("value").sum().reset_index()
                         )
-                        if len(dist_table.value) > nbins:
-                            sample = list(
-                                map(
-                                    lambda x: x.replace(month=1),
-                                    dist_table.value,
-                                )
+                        months = timedelta.days / 30
+                        if len(dist_table.value) > nbins or months > nbins:
+                            dist_table.value = dist_table.value.map(
+                                lambda x: x.replace(month=1)
                             )
                             dist_table = (
                                 dist_table.groupby("value").sum().reset_index()
