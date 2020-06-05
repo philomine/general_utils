@@ -266,6 +266,7 @@ def plot_distribution(
         "object": sample_text_distribution,
         "str": sample_text_distribution,
         "datetime64[ns]": sample_time_series_distribution,
+        "int32": sample_numeric_distribution,
         "int64": sample_numeric_distribution,
         "float64": sample_numeric_distribution,
     }
