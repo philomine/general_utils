@@ -49,8 +49,8 @@ functions
   - function sample_time_series_distribution
   - function dist_table_numeric_distribution
   - function sample_numeric_distribution
-  - function dist_table_text_distribution
-  - function sample_text_distribution
+  - function dist_table_attribute_distribution
+  - function sample_attribute_distribution
 
 ## Documentation
 
@@ -62,7 +62,8 @@ way:
 pd.plot_distribution
 |-- sample_numeric_distribution
 |-- sample_time_series_distribution
-|-- sample_text_distribution
+|   |-- dist_table_time_series_distribution
+|-- sample_attribute_distribution
     |-- sample_pie_chart
     |   |-- dist_table_pie_chart
     |-- sample_bar_chart
@@ -71,11 +72,8 @@ pd.plot_distribution
 dist_table_numeric_distribution
 |-- sample_numeric_distribution
 
-dist_table_time_series_distribution
-|-- sample_time_series_distribution
-
-dist_table_text_distribution
-|-- sample_text_distribution
+dist_table_attribute_distribution
+|-- sample_attribute_distribution
 ```
 
 You can call any of these functions independantly. However, calling one of

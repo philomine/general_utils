@@ -610,7 +610,7 @@ def sample_numeric_distribution(
         Number of bins to plot (if too big, the bars are too slim to see).
     """
     if len(np.unique(sample)) <= 20:
-        fig = sample_text_distribution(
+        fig = sample_attribute_distribution(
             [str(val) for val in sample], **_reset_kwargs(kwargs)
         )
     else:
@@ -629,13 +629,13 @@ def sample_numeric_distribution(
     return fig
 
 
-def dist_table_text_distribution(
+def dist_table_attribute_distribution(
     dist_table,
     title=None,
     filename=None,
     sample_info=True,
     log_scale=True,
-    text_as_pie=False,
+    att_as_pie=False,
     nbins=20,
     **kwargs,
 ):
@@ -658,7 +658,7 @@ def dist_table_text_distribution(
         useful to have this basic info).
     log_scale: bool (optional, default: True)
         Wether to set the y axis scale to be logarithmic.
-    text_as_pie: bool (optional, default: False)
+    att_as_pie: bool (optional, default: False)
         Attributes values are plotted either as a pie or bar chart.
     nbins: int (optional, default: 20)
         Number of maximum number of values to plot. For attributes values, it 
@@ -674,7 +674,7 @@ def dist_table_text_distribution(
 
     # Layout and saving parameters
     fig = _set_plotly_layout(
-        fig, title=title, log_scale=(log_scale and not text_as_pie)
+        fig, title=title, log_scale=(log_scale and not att_as_pie)
     )
     if sample_info:
         fig = _add_sample_info(fig, sample_size=len(dist_table_sample))
@@ -682,13 +682,13 @@ def dist_table_text_distribution(
     return fig
 
 
-def sample_text_distribution(
+def sample_attribute_distribution(
     sample,
     title=None,
     filename=None,
     sample_info=True,
     log_scale=True,
-    text_as_pie=False,
+    att_as_pie=False,
     nbins=20,
     **kwargs,
 ):
@@ -708,7 +708,7 @@ def sample_text_distribution(
         useful to have this basic info).
     log_scale: bool (optional, default: True)
         Wether to set the y axis scale to be logarithmic.
-    text_as_pie: bool (optional, default: False)
+    att_as_pie: bool (optional, default: False)
         Attributes values are plotted either as a pie or bar chart.
     nbins: int (optional, default: 20)
         Number of maximum number of values to plot. For attributes values, it 
@@ -725,13 +725,13 @@ def sample_text_distribution(
             sample_dist_table, **_reset_kwargs(kwargs)
         )
     else:
-        if text_as_pie:
+        if att_as_pie:
             fig = sample_pie_chart(sample, **_reset_kwargs(kwargs))
         else:
             fig = sample_bar_chart(sample, **_reset_kwargs(kwargs))
     # Layout and saving parameters
     fig = _set_plotly_layout(
-        fig, title=title, log_scale=(log_scale and not text_as_pie)
+        fig, title=title, log_scale=(log_scale and not att_as_pie)
     )
     if sample_info:
         fig = _add_sample_info(fig, sample_size=len(sample))

@@ -12,8 +12,8 @@ from .vizualisation import (
     _save_plotly_fig,
     _set_plotly_layout,
     dist_table_pie_chart,
+    sample_attribute_distribution,
     sample_numeric_distribution,
-    sample_text_distribution,
     sample_time_series_distribution,
 )
 
@@ -263,8 +263,8 @@ def plot_distribution(
         self = self.map(lambda x: x.to_timestamp(), na_action="ignore")
 
     dtype_distribution = {
-        "object": sample_text_distribution,
-        "str": sample_text_distribution,
+        "object": sample_attribute_distribution,
+        "str": sample_attribute_distribution,
         "datetime64[ns]": sample_time_series_distribution,
         "int32": sample_numeric_distribution,
         "int64": sample_numeric_distribution,
