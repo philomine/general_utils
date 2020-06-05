@@ -359,63 +359,14 @@ def scatter_plot(
     return fig
 
 
-def dist_table_time_series_distribution(
-    dist_table,
-    title=None,
-    filename=None,
-    sample_info=True,
-    log_scale=False,
-    nbins=200,
-    time_freq="D",
-    **kwargs,
-):
-    """ Plots a time series distribution from a dist table
-    A dist table is a pd.DataFrame with two columns: 
-        - value: list of values
-        - freq: frequency of those values
-    
-    Parameters
-    ----------
-    sample : array-like of pd.Timestamp
-        The dates of which to plot the distribution.
-    title: str or None (optional, default: None)
-        Title of the plot. Set to None for no title.
-    filename: str or None (optional, default: None)
-        The path where to save the plot. Set to None to not save the plot.
-    sample_info: bool (optional, default: True)
-        Wether to write the sample size (set to True because it's usually 
-        useful to have this basic info).
-    log_scale: bool (optional, default: True)
-        Wether to set the y axis scale to be logarithmic.
-    nbins: int (optional, default: 200)
-        Number of dates to plot (if too big, the bars are too slim to see).
-    time_freq: pd.Timestamp's freq (optional, default: "D")
-        You can group the dates in freq: 'W' for weeks of year, 'M' for months, 
-        etc. This allows you to go into less detail but see all values globally 
-        if your sample is too large.
-    """
-    # Plotting the figure
-    dist_table_sample = get_sample(dist_table)
-    fig = sample_time_series_distribution(
-        dist_table_sample, **_reset_kwargs(kwargs)
-    )
-
-    # Layout and saving parameters
-    fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
-    if sample_info:
-        fig = _add_sample_info(fig, sample_size=len(dist_table_sample))
-    _save_plotly_fig(fig, filename=filename)
-    return fig
-
-
 def sample_time_series_distribution(
     sample,
-    title=None,
-    filename=None,
-    sample_info=True,
+    freq=None,
+    nbins=300,
     log_scale=False,
-    nbins=200,
-    time_freq="D",
+    title=None,
+    sample_info=True,
+    filename=None,
     **kwargs,
 ):
     """ Plots a distribution of a timestamp sample, sample should not have any
@@ -425,94 +376,178 @@ def sample_time_series_distribution(
     ----------
     sample : array-like of pd.Timestamp
         The dates of which to plot the distribution.
+    freq: string {None, "s", "m", "H", "D", "M", "Y"} (optional, default: None)
+        Determines the bins. Overrides nbins parameters that determines the
+        bins by default.
+    nbins: int (optional, default: 300)
+        Number of bins to plot (if too big, the bars are too slim to see).
+    log_scale: bool (optional, default: True)
+        Wether to set the y axis scale to be logarithmic.
+    sample_info: bool (optional, default: True)
+        Wether to write the sample size (set to True because it's usually 
+        useful to have this basic info).
     title: str or None (optional, default: None)
         Title of the plot. Set to None for no title.
     filename: str or None (optional, default: None)
         The path where to save the plot. Set to None to not save the plot.
-    sample_info: bool (optional, default: True)
-        Wether to write the sample size (set to True because it's usually 
-        useful to have this basic info).
-    log_scale: bool (optional, default: True)
-        Wether to set the y axis scale to be logarithmic.
-    nbins: int (optional, default: 200)
-        Number of dates to plot (if too big, the bars are too slim to see).
-    time_freq: pd.Timestamp's freq (optional, default: "D")
-        You can group the dates in freq: 'W' for weeks of year, 'M' for months, 
-        etc. This allows you to go into less detail but see all values globally 
-        if your sample is too large.
     """
-    if time_freq != "D":
-        sample = list(
-            map(
-                lambda timestamp: timestamp.to_period(
-                    time_freq
-                ).to_timestamp(),
-                sample,
-            )
-        )
-
-    sample_distribution = get_dist_table(sample)
-    sample_distribution = (
-        pd.DataFrame(
-            {
-                "value": pd.date_range(
-                    start=np.min(sample_distribution.value),
-                    end=np.max(sample_distribution.value),
-                    freq=time_freq,
-                )
-            }
-        )
-        .join(sample_distribution.set_index("value"), on="value")
-        .fillna(0)
-    )
-
-    if nbins > sample_distribution.shape[0]:
-        nbins = sample_distribution.shape[0]
-
-    if sample_distribution.shape[0] > nbins:
-        sample_distributions = sample_distribution.divide_dataset(
-            int(np.ceil(sample_distribution.shape[0] / nbins)),
-        )
-        fig = go.Figure()
-        for i, data in enumerate(sample_distributions):
-            if np.any([val != 0 for val in data.freq]):
-                fig.add_trace(go.Bar(visible=False, x=data.value, y=data.freq))
-        fig.data[-1].visible = True
-        steps = []
-        for i in range(len(fig.data)):
-            visibility = [False] * len(fig.data)
-            visibility[i] = True
-            steps.append(
-                dict(
-                    method="restyle",
-                    args=["visible", visibility],
-                    label=str(i),
-                )
-            )
-
-        sliders = [
-            dict(
-                active=len(fig.data) - 1,
-                x=0,
-                y=-0.2,
-                currentvalue={"prefix": "Slice: "},
-                steps=steps,
-            )
-        ]
-
-        fig.update_layout(sliders=sliders)
+    if freq is None:
+        if len(np.unique(sample)) > nbins:
+            sample = list(map(lambda x: x.replace(second=0), sample))
+            if len(np.unique(sample)) > nbins:
+                sample = list(map(lambda x: x.replace(minute=0), sample))
+                if len(np.unique(sample)) > nbins:
+                    sample = list(map(lambda x: x.replace(hour=0), sample))
+                    if len(np.unique(sample)) > nbins:
+                        sample = list(map(lambda x: x.replace(day=1), sample))
+                        if len(np.unique(sample)) > nbins:
+                            sample = list(
+                                map(lambda x: x.replace(month=1), sample)
+                            )
     else:
-        fig = go.Figure()
-        fig.add_trace(
-            go.Bar(x=sample_distribution.value, y=sample_distribution.freq)
-        )
-
-    # Layout and saving parameters
+        freq_dict = {"s": 0, "m": 1, "H": 2, "D": 3, "M": 4, "Y": 5}
+        num_freq = freq_dict[freq]
+        if num_freq > 0:
+            sample = list(map(lambda x: x.replace(second=0), sample))
+            if num_freq > 1:
+                sample = list(map(lambda x: x.replace(minute=0), sample))
+                if num_freq > 2:
+                    sample = list(map(lambda x: x.replace(hour=0), sample))
+                    if num_freq > 3:
+                        sample = list(map(lambda x: x.replace(day=1), sample))
+                        if num_freq > 4:
+                            sample = list(
+                                map(lambda x: x.replace(month=1), sample)
+                            )
+    dist_table = get_dist_table(sample)
+    fig = dist_table_time_series_distribution(
+        dist_table, freq=freq, nbins=nbins, **_reset_kwargs(kwargs)
+    )
     fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
     if sample_info:
         fig = _add_sample_info(fig, sample_size=len(sample))
     _save_plotly_fig(fig, filename=filename)
+    return fig
 
+
+def dist_table_time_series_distribution(
+    dist_table,
+    freq=None,
+    nbins=300,
+    log_scale=False,
+    title=None,
+    sample_info=True,
+    filename=None,
+    **kwargs,
+):
+    """ Plots a time series distribution from a dist table
+    A dist table is a pd.DataFrame with two columns: 
+        - value: list of values
+        - freq: frequency of those values
+    
+    Parameters
+    ----------
+    dist_table : pd.DataFrame with 'value' and 'freq' columns (dist table)
+        The dist table of dates of which to plot the distribution.
+    freq: string {None, "s", "m", "H", "D", "M", "Y"} (optional, default: None)
+        Determines the bins. Overrides nbins parameters that determines the
+        bins by default.
+    nbins: int (optional, default: 300)
+        Number of bins to plot (if too big, the bars are too slim to see).
+    log_scale: bool (optional, default: True)
+        Wether to set the y axis scale to be logarithmic.
+    sample_info: bool (optional, default: True)
+        Wether to write the sample size (set to True because it's usually 
+        useful to have this basic info).
+    title: str or None (optional, default: None)
+        Title of the plot. Set to None for no title.
+    filename: str or None (optional, default: None)
+        The path where to save the plot. Set to None to not save the plot.
+    """
+    if freq is None:
+        if len(dist_table.value) > nbins:
+            sample = list(map(lambda x: x.replace(second=0), dist_table.value))
+            dist_table = dist_table.groupby("value").sum().reset_index()
+            if len(dist_table.value) > nbins:
+                sample = list(
+                    map(lambda x: x.replace(minute=0), dist_table.value)
+                )
+                dist_table = dist_table.groupby("value").sum().reset_index()
+                if len(dist_table.value) > nbins:
+                    sample = list(
+                        map(lambda x: x.replace(hour=0), dist_table.value)
+                    )
+                    dist_table = (
+                        dist_table.groupby("value").sum().reset_index()
+                    )
+                    if len(dist_table.value) > nbins:
+                        sample = list(
+                            map(lambda x: x.replace(day=1), dist_table.value)
+                        )
+                        dist_table = (
+                            dist_table.groupby("value").sum().reset_index()
+                        )
+                        if len(dist_table.value) > nbins:
+                            sample = list(
+                                map(
+                                    lambda x: x.replace(month=1),
+                                    dist_table.value,
+                                )
+                            )
+                            dist_table = (
+                                dist_table.groupby("value").sum().reset_index()
+                            )
+    else:
+        freq_dict = {"s": 0, "m": 1, "H": 2, "D": 3, "M": 4, "Y": 5}
+        num_freq = freq_dict[freq]
+        if num_freq > 0:
+            sample = list(map(lambda x: x.replace(second=0), dist_table.value))
+            dist_table = dist_table.groupby("value").sum().reset_index()
+            if num_freq > 1:
+                sample = list(
+                    map(lambda x: x.replace(minute=0), dist_table.value)
+                )
+                dist_table = dist_table.groupby("value").sum().reset_index()
+                if num_freq > 2:
+                    sample = list(
+                        map(lambda x: x.replace(hour=0), dist_table.value)
+                    )
+                    dist_table = (
+                        dist_table.groupby("value").sum().reset_index()
+                    )
+                    if num_freq > 3:
+                        sample = list(
+                            map(lambda x: x.replace(day=1), dist_table.value)
+                        )
+                        dist_table = (
+                            dist_table.groupby("value").sum().reset_index()
+                        )
+                        if num_freq > 4:
+                            sample = list(
+                                map(
+                                    lambda x: x.replace(month=1),
+                                    dist_table.value,
+                                )
+                            )
+                            dist_table = (
+                                dist_table.groupby("value").sum().reset_index()
+                            )
+    fig = go.Figure([go.Bar(x=dist_table.value, y=dist_table.freq)])
+    fig = fig.update_xaxes(
+        rangeslider_visible=True,
+        rangeselector={
+            "buttons": [
+                dict(
+                    count=1, label="Last year", step="year", stepmode="todate"
+                ),
+                dict(step="all", label="All"),
+            ]
+        },
+    )
+    fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
+    if sample_info:
+        fig = _add_sample_info(fig, sample_size=len(sample))
+    _save_plotly_fig(fig, filename=filename)
     return fig
 
 
