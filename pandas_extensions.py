@@ -273,12 +273,11 @@ def plot_distribution(
     if plot_type is None:
         plot_type = str(self.dtype)
 
+    if "title" not in kwargs:
+        kwargs["title"] = f"Distribution of {self.name}"
+
     dtype_distribution = dtype_distribution[plot_type]
-    fig = dtype_distribution(
-        self.copy().dropna(),
-        title=f"Distribution of {self.name}",
-        **_reset_kwargs(kwargs),
-    )
+    fig = dtype_distribution(self.copy().dropna(), **_reset_kwargs(kwargs))
     if sample_info:
         fig = _add_sample_info(fig, self.shape[0], np.sum(self.isna()))
     _save_plotly_fig(fig, filename=filename)

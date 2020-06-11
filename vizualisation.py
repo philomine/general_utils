@@ -410,6 +410,8 @@ def dist_table_time_series_distribution(
     title=None,
     sample_info=True,
     filename=None,
+    date_min=None,
+    date_max=None,
     **kwargs,
 ):
     """ Plots a time series distribution from a dist table
@@ -435,7 +437,19 @@ def dist_table_time_series_distribution(
         Title of the plot. Set to None for no title.
     filename: str or None (optional, default: None)
         The path where to save the plot. Set to None to not save the plot.
+    date_min: pd.Timestamp (optional, default None)
+        Minimum date to display. Allows to remove outliers.
+    date_max: pd.Timestamp (optional, default None)
+        Maximum date to display. Allows to remove outliers.
     """
+    # Removing outliers given by date_min and date_max
+    if date_min is not None:
+        dist_table = dist_table[dist_table.value >= date_min]
+    if date_max is not None:
+        dist_table = dist_table[dist_table.value <= date_max]
+
+    # Setting the time frequency to the given freq
+    # Or, if freq is None, to have an acceptable number of bins
     if freq is None:
         timedelta = np.max(dist_table.value) - np.min(dist_table.value)
         seconds = timedelta.days * 24 * 60 * 60
@@ -509,6 +523,8 @@ def dist_table_time_series_distribution(
                             dist_table = (
                                 dist_table.groupby("value").sum().reset_index()
                             )
+
+    # Plotting the figure
     fig = go.Figure([go.Bar(x=dist_table.value, y=dist_table.freq)])
     fig = fig.update_xaxes(
         rangeslider_visible=True,
@@ -586,6 +602,8 @@ def sample_numeric_distribution(
     num_info=True,
     log_scale=True,
     nbins=200,
+    n_min=None,
+    n_max=None,
     **kwargs,
 ):
     """ Plots the distribution of a numeric sample with no null values
@@ -608,7 +626,16 @@ def sample_numeric_distribution(
         Wether to set the y axis scale to be logarithmic.
     nbins: int (optional, default: 200)
         Number of bins to plot (if too big, the bars are too slim to see).
+    n_min: int (optional, default: None)
+        Minimum value to display. Allows to remove outliers.
+    n_max: int (optional, default: None)
+        Maximum value to display. Allows to remove outliers.
     """
+    if n_min is not None:
+        sample = sample[sample >= n_min]
+    if n_max is not None:
+        sample = sample[sample <= n_max]
+
     if len(np.unique(sample)) <= 20:
         fig = sample_attribute_distribution(
             [str(val) for val in sample], **_reset_kwargs(kwargs)
@@ -637,6 +664,7 @@ def dist_table_attribute_distribution(
     log_scale=True,
     att_as_pie=False,
     nbins=20,
+    nbiggest=None,
     **kwargs,
 ):
     """ Plots the 'attribute' distribution of dist table
@@ -665,19 +693,31 @@ def dist_table_attribute_distribution(
         quickly becomes unreadable. If the number of unique values is too big, 
         We'll evaluate if there's a limited number of formats for the sample, 
         and if not we'll resort to plotting the length of the different values.
+    nbiggest: int (optional, default None)
+        Number of biggest categories to display (allows to focus on the biggest
+        categories when the number of categories is too high)
     """
-    # Plotting the figure
-    dist_table_sample = get_sample(dist_table)
-    fig = sample_attribute_distribution(
-        dist_table_sample, **_reset_kwargs(kwargs)
-    )
+    # Redirecting to numeric distribution (pareto) if too many attributes
+    if len(dist_table.value) > nbins:
+        dist_table = dist_table.sort_values("freq", ascending=False)
+        dist_table["value"] = np.arange(dist_table.shape[0])
+        if nbiggest is not None:
+            dist_table = dist_table[dist_table.value <= nbiggest]
+        fig = dist_table_numeric_distribution(
+            dist_table, **_reset_kwargs(kwargs)
+        )
+    else:
+        if att_as_pie:
+            fig = dist_table_pie_chart(dist_table, **_reset_kwargs(kwargs))
+        else:
+            fig = dist_table_bar_chart(dist_table, **_reset_kwargs(kwargs))
 
     # Layout and saving parameters
     fig = _set_plotly_layout(
         fig, title=title, log_scale=(log_scale and not att_as_pie)
     )
     if sample_info:
-        fig = _add_sample_info(fig, sample_size=len(dist_table_sample))
+        fig = _add_sample_info(fig, sample_size=len(dist_table))
     _save_plotly_fig(fig, filename=filename)
     return fig
 
@@ -690,6 +730,7 @@ def sample_attribute_distribution(
     log_scale=True,
     att_as_pie=False,
     nbins=20,
+    nbiggest=None,
     **kwargs,
 ):
     """ Plots the distribution of an 'attribute' sample with no null values
@@ -715,20 +756,16 @@ def sample_attribute_distribution(
         quickly becomes unreadable. If the number of unique values is too big, 
         We'll evaluate if there's a limited number of formats for the sample, 
         and if not we'll resort to plotting the length of the different values.
+    nbiggest: int (optional, default None)
+        Number of biggest categories to display (allows to focus on the biggest
+        categories when the number of categories is too high)
     """
-    if len(np.unique(sample)) > nbins:
-        sample_dist_table = get_dist_table(sample).sort_values(
-            "freq", ascending=False
-        )
-        sample_dist_table["value"] = np.arange(sample_dist_table.shape[0])
-        fig = dist_table_numeric_distribution(
-            sample_dist_table, **_reset_kwargs(kwargs)
-        )
-    else:
-        if att_as_pie:
-            fig = sample_pie_chart(sample, **_reset_kwargs(kwargs))
-        else:
-            fig = sample_bar_chart(sample, **_reset_kwargs(kwargs))
+    # Plotting the figure
+    sample_dist_table = get_dist_table(sample)
+    fig = dist_table_attribute_distribution(
+        sample_dist_table, **_reset_kwargs(kwargs)
+    )
+
     # Layout and saving parameters
     fig = _set_plotly_layout(
         fig, title=title, log_scale=(log_scale and not att_as_pie)

@@ -64,16 +64,18 @@ pd.plot_distribution
 |-- sample_time_series_distribution
 |   |-- dist_table_time_series_distribution
 |-- sample_attribute_distribution
-    |-- sample_pie_chart
-    |   |-- dist_table_pie_chart
-    |-- sample_bar_chart
+    |-- dist_table_attribute_distribution
+        |-- dist_table_pie_chart
         |-- dist_table_bar_chart
 
 dist_table_numeric_distribution
 |-- sample_numeric_distribution
 
-dist_table_attribute_distribution
-|-- sample_attribute_distribution
+sample_pie_chart
+|-- dist_table_pie_chart
+
+sample_bar_chart
+|-- dist_table_bar_chart
 ```
 
 You can call any of these functions independantly. However, calling one of
