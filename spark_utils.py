@@ -37,9 +37,13 @@ def spark_schema(spark_df):
     )
 
 
-def spark_replace(spark_df, old_value, new_value):
-    for col in spark_df.columns:
-        spark_df = spark_replace_in_col(spark_df, col, old_value, new_value)
+def spark_replace(spark_df, old_value, new_value, columns=None):
+    if columns is None:
+        for col in spark_df.columns:
+            spark_df = spark_replace_in_col(spark_df, col, old_value, new_value)
+    else:
+        for col in columns:
+            spark_df = spark_replace_in_col(spark_df, col, old_value, new_value)
     return spark_df
 
 
