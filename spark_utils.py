@@ -44,12 +44,18 @@ def spark_replace(spark_df, old_value, new_value):
 
 
 def spark_replace_in_col(spark_df, column_name, old_value, new_value):
-    return spark_df.withColumn(
-        column_name,
-        F.when(F.col(column_name) == old_value, F.lit(new_value)).otherwise(
-            F.col(column_name)
-        ),
-    )
+    dtype = {col: dtype for col, dtype in spark_df.dtypes}[column_name]
+    if old_value is None:
+        spark_df = spark_df.withColumn(
+            column_name,
+            F.when(F.col(column_name).isNull(), F.lit(new_value)).otherwise(F.col(column_name)).cast(dtype),
+        )
+    else:
+        spark_df = spark_df.withColumn(
+            column_name,
+            F.when(F.col(column_name) == old_value, F.lit(new_value)).otherwise(F.col(column_name)).cast(dtype),
+        )
+    return spark_df
 
 
 def spark_drop_empty_columns(spark_df):
