@@ -26,30 +26,25 @@ class MLLogger:
             List the metrics by which you will compare the different results.
         """
         self._create_filesystem(experiment_name)
+        self._experiment_filepath = f"./ml_experiments/results/{experiment_name}.pickle"
 
-        # Check if the ML experiment already exists
-        self._experiment_filepath = (
-            f"./ml_experiments/results/{experiment_name}.pickle"
-        )
-        experiment_exists = os.path.isfile(self._experiment_filepath)
-
-        # Building the result logger dataframe
-        if experiment_exists:
+        # If the experiment already exists, load it
+        if os.path.isfile(self._experiment_filepath):
             logger = pickle.load(open(self._experiment_filepath, "rb"))
-            correct_metrics = logger.metrics == metrics
-            if not correct_metrics:
+            if logger.metrics != metrics:
                 raise AttributeError(
                     f"An experiment with that name and different metrics "
                     + f"already exists. Other metrics: {logger.metrics}"
                 )
-            result_log = logger.result_log
+            self.experiment_name = logger.experiment_name
+            self.metrics = logger.metrics
+            self.result_log = logger.result_log
+        # Otherwise, init the attributes
         else:
-            result_log = pd.DataFrame(columns=["time", "method", *metrics])
-
-        self.experiment_name = experiment_name
-        self.metrics = metrics
-        self.result_log = result_log
-        self._save()
+            self.experiment_name = experiment_name
+            self.metrics = metrics
+            self.result_log = pd.DataFrame()
+            self._save()
 
     def _save(self):
         pickle.dump(self, open(self._experiment_filepath, "wb"))
@@ -90,12 +85,6 @@ class MLLogger:
         metrics["name"] = result_name
         self.result_log = self.result_log.append(metrics, ignore_index=True)
 
-        pickle.dump(
-            model,
-            open(
-                f"./ml_experiments/models/{self.experiment_name}/"
-                + f"{log_time}_{result_name}.pickle",
-                "wb",
-            ),
-        )
+        model_location = f"./ml_experiments/models/{self.experiment_name}/{log_time}_{result_name}.pickle"
+        pickle.dump(model, open(model_location, "wb"))
         self._save()
