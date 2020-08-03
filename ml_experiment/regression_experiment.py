@@ -28,7 +28,7 @@ class RegressionExperiment:
             if not hasattr(logger, "error_plots"):
                 self.logger.error_plots = []
             else:
-                self.logger.error_plot = logger.error_plots
+                self.logger.error_plots = logger.error_plots
         else:
             self.logger.error_plots = []
 
@@ -47,17 +47,19 @@ class RegressionExperiment:
             X_train, y_train, X_test, y_test
         """
         X_train, y_train, X_test, y_test = data
+        y_test = np.array(y_test).flatten()
         for model in models:
             model.fit(X_train, y_train)
-            y_pred = model.predict(X_test)
+            y_pred = model.predict(X_test).flatten()
 
-            mape = np.mean(mean_absolute_error(y_test, y_pred))
-            mse = np.mean(mean_squared_error(y_test, y_pred))
-
-            metrics = {"mse": mse, "mape": mape}
             name = type(model).__name__
+            metrics = {
+                "mse": mean_squared_error(y_test, y_pred),
+                "mae": mean_absolute_error(y_test, y_pred),
+            }
 
-            fig = go.Figure(data=[go.Histogram(x=(y_pred - np.array(y_test)).flatten())])
+            error = y_pred - y_test
+            fig = go.Figure(data=[go.Histogram(x=error)])
             fig = fig.update_layout(title=name)
 
             self.logger.log(name, model, metrics)
