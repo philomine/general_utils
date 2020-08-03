@@ -3,27 +3,19 @@ import os
 import pickle
 import time
 
-import numpy as np
 import pandas as pd
-import tqdm
 
 
 class MLLogger:
-    def __init__(self, experiment_name, metrics):
-        """ Create a logger for an experiment
-        You should:
-        - name the experiment 
-        - define the metrics you will use throughout the experiment
-        Those two things will 'define' your experiment. If you want to load it 
-        later, you'll have to use the same name and metrics.
+    def __init__(self, experiment_name):
+        """ Create a logger for an experiment. The experiment name will define
+        your experiment. To load it later, you'll just have to use the same
+        name when initialising the logger.
 
         Parameters
         ----------
         experiment_name : string
             The name of the ML experiment.
-        
-        metrics : list of strings 
-            List the metrics by which you will compare the different results.
         """
         self._create_filesystem(experiment_name)
         self._experiment_filepath = f"./ml_experiments/results/{experiment_name}.pickle"
@@ -31,18 +23,11 @@ class MLLogger:
         # If the experiment already exists, load it
         if os.path.isfile(self._experiment_filepath):
             logger = pickle.load(open(self._experiment_filepath, "rb"))
-            if logger.metrics != metrics:
-                raise AttributeError(
-                    f"An experiment with that name and different metrics "
-                    + f"already exists. Other metrics: {logger.metrics}"
-                )
             self.experiment_name = logger.experiment_name
-            self.metrics = logger.metrics
             self.result_log = logger.result_log
         # Otherwise, init the attributes
         else:
             self.experiment_name = experiment_name
-            self.metrics = metrics
             self.result_log = pd.DataFrame()
             self._save()
 
@@ -63,7 +48,7 @@ class MLLogger:
 
     def log(self, result_name, model, metrics):
         """ Logs a result in the result log
-        Adds a row to the result_log dataframe to register the performance of a 
+        Adds a row to the result_log dataframe to register the performance of a
         model, and saves the model in pickle format.
 
         Parameters
