@@ -9,7 +9,7 @@ from ..ml_logger import MLLogger
 from ..plotly_reporter import generate_report
 
 
-class RegressionExperiment:
+class RegressionExperiment(MLLogger):
     def __init__(self, experiment_name):
         """ Create an experiment for a regression problem. This class relies on 
         MLLogger class. TODO: inheritance. It adds plotly reports with the 
@@ -20,20 +20,23 @@ class RegressionExperiment:
         experiment_name: string
             The name under which you want to save your results.
         """
-        self.experiment_name = experiment_name
-        self.logger = MLLogger(experiment_name, ["mse"])
-
-        if os.path.isfile(self.logger._experiment_filepath):
-            logger = pickle.load(open(self.logger._experiment_filepath, "rb"))
-            if not hasattr(logger, "error_plots"):
-                self.logger.error_plots = []
-            else:
-                self.logger.error_plots = logger.error_plots
-        else:
-            self.logger.error_plots = []
+        super().__init__(experiment_name)
 
         if not os.path.isdir("./ml_experiments/reports/"):
             os.mkdir("./ml_experiments/reports/")
+
+        # If the experiment already exists, check for error plots
+        if os.path.isfile(self._experiment_filepath):
+            logger = pickle.load(open(self._experiment_filepath, "rb"))
+            if hasattr(logger, "error_plots"):
+                self.error_plots = logger.error_plots
+            else:
+                self.error_plots = []
+                self._save()
+        # Otherwise, init the error plots
+        else:
+            self.error_plots = []
+            self._save()
 
     def experiment(self, models, data):
         """ Launches an experiment: trains the data and tests the results on 
@@ -62,10 +65,10 @@ class RegressionExperiment:
             fig = go.Figure(data=[go.Histogram(x=error)])
             fig = fig.update_layout(title=name)
 
-            self.logger.log(name, model, metrics)
-            self.logger.error_plots.append(fig)
+            self.error_plots.append(fig)
+            self.log(name, model, metrics)
 
-        report_contents = [("title", self.experiment_name), ("pandas", self.logger.result_log)]
-        for error_plot in self.logger.error_plots:
+        report_contents = [("title", self.experiment_name), ("pandas", self.result_log)]
+        for error_plot in self.error_plots:
             report_contents.append(("fig", error_plot))
         generate_report(f"./ml_experiments/reports/{self.experiment_name}.html", report_contents)
