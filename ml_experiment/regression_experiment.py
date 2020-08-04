@@ -44,29 +44,32 @@ class RegressionExperiment(MLLogger):
         
         Parameters
         ----------
-        models: list of scikit learn models with fit and predict method
+        models: list of tuples (scikit-learn model, list of kwargs)
             Model to fit and predict
-        data: list of 4 pd.DataFrame
+        data: list of 4 np.array (2d, 1d, 2d, 1d)
             X_train, y_train, X_test, y_test
         """
         X_train, y_train, X_test, y_test = data
-        y_test = np.array(y_test).flatten()
-        for model in models:
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_test).flatten()
+        for model, kwargs_list in models:
+            for i, kwargs in enumerate(kwargs_list):
+                mod = model(**kwargs)
+                try:
+                    mod.fit(X_train, y_train)
+                    y_pred = mod.predict(X_test).flatten()
 
-            name = type(model).__name__
-            metrics = {
-                "mse": mean_squared_error(y_test, y_pred),
-                "mae": mean_absolute_error(y_test, y_pred),
-            }
+                    name = f"{type(mod).__name__}_{i}"
+                    metrics = kwargs.copy()
+                    metrics["mse"] = mean_squared_error(y_test, y_pred)
+                    metrics["mae"] = mean_absolute_error(y_test, y_pred)
 
-            error = y_pred - y_test
-            fig = go.Figure(data=[go.Histogram(x=error)])
-            fig = fig.update_layout(title=name)
+                    error = y_pred - y_test
+                    fig = go.Figure(data=[go.Histogram(x=error)])
+                    fig = fig.update_layout(title=name)
 
-            self.error_plots.append(fig)
-            self.log(name, model, metrics)
+                    self.error_plots.append(fig)
+                    self.log(name, mod, metrics)
+                except Exception as e:
+                    print(f"Warning: Model {type(mod).__name__} didn't work. Error: {e}")
 
         report_contents = [("title", self.experiment_name), ("pandas", self.result_log)]
         for error_plot in self.error_plots:
