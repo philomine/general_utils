@@ -12,9 +12,9 @@ from .vizualisation import (
     _save_plotly_fig,
     _set_plotly_layout,
     dist_table_pie_chart,
-    numeric_distribution,
-    text_distribution,
-    time_series_distribution,
+    sample_attribute_distribution,
+    sample_numeric_distribution,
+    sample_time_series_distribution,
 )
 
 
@@ -235,7 +235,7 @@ def _add_sample_info(fig, sample_size, nb_nan):
         f"Number of values: {sample_size}"
         + "<br>"
         + f"Filled: {sample_size - nb_nan} "
-        + "({round(100 * (sample_size - nb_nan) / sample_size, 2)}%)"
+        + f"({round(100 * (sample_size - nb_nan) / sample_size, 2)}%)"
         + "<br>"
         + f"Empty: {nb_nan} ({round(100 * nb_nan / sample_size, 2)}%)"
     )
@@ -259,22 +259,25 @@ def plot_distribution(
     if self.name is None:
         self.name = "unknown sample"
 
+    if str(self.dtype)[:6] == "period":
+        self = self.map(lambda x: x.to_timestamp(), na_action="ignore")
+
     dtype_distribution = {
-        "object": text_distribution,
-        "str": text_distribution,
-        "datetime64[ns]": time_series_distribution,
-        "int64": numeric_distribution,
-        "float64": numeric_distribution,
+        "object": sample_attribute_distribution,
+        "str": sample_attribute_distribution,
+        "datetime64[ns]": sample_time_series_distribution,
+        "int32": sample_numeric_distribution,
+        "int64": sample_numeric_distribution,
+        "float64": sample_numeric_distribution,
     }
     if plot_type is None:
         plot_type = str(self.dtype)
 
+    if "title" not in kwargs:
+        kwargs["title"] = f"Distribution of {self.name}"
+
     dtype_distribution = dtype_distribution[plot_type]
-    fig = dtype_distribution(
-        self.copy().dropna(),
-        title=f"Distribution of {self.name}",
-        **_reset_kwargs(kwargs),
-    )
+    fig = dtype_distribution(self.copy().dropna(), **_reset_kwargs(kwargs))
     if sample_info:
         fig = _add_sample_info(fig, self.shape[0], np.sum(self.isna()))
     _save_plotly_fig(fig, filename=filename)

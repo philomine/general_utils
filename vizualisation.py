@@ -4,7 +4,7 @@ import plotly
 import plotly.express as px
 import plotly.graph_objects as go
 
-from .data_analysis import get_dist_table, get_string_format
+from .data_analysis import get_dist_table, get_sample, get_string_format
 
 
 def _set_plotly_layout(fig, title=None, log_scale=False):
@@ -139,6 +139,14 @@ def _reset_kwargs(kwargs):
     return kwargs
 
 
+def _str_is_float(string):
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
+
+
 def sample_pie_chart(
     sample, title=None, filename=None, sample_info=True, **kwargs
 ):
@@ -234,7 +242,6 @@ def sample_bar_chart(
     title=None,
     filename=None,
     sample_info=True,
-    num_info=False,
     log_scale=True,
     **kwargs,
 ):
@@ -254,22 +261,17 @@ def sample_bar_chart(
     sample_info: bool (optional, default: True)
         Wether to write the sample size (set to True because it's usually 
         useful to have this basic info).
-    num_info: bool (optional, default: False)
-        Wether to write the numerical info on the plot.
     log_scale: bool (optional, default: True)
         Wether to set the y axis scale to be logarithmic.
     """
-    sample_dist_table = get_dist_table(sample)
-
     # Plotting the figure
+    sample_dist_table = get_dist_table(sample)
     fig = dist_table_bar_chart(sample_dist_table, **_reset_kwargs(kwargs))
 
     # Layout and saving parameters
     fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
     if sample_info:
         fig = _add_sample_info(fig, len(sample))
-    if num_info:
-        fig = _add_num_info(fig, [float(val) for val in sample])
     _save_plotly_fig(fig, filename=filename)
     return fig
 
@@ -357,22 +359,211 @@ def scatter_plot(
     return fig
 
 
-def time_series_distribution(
+def sample_time_series_distribution(
     sample,
-    title=None,
-    filename=None,
-    sample_info=True,
+    freq=None,
+    nbins=300,
     log_scale=False,
-    nbins=200,
-    time_freq="D",
+    title=None,
+    sample_info=True,
+    filename=None,
     **kwargs,
 ):
-    """ Plots a distribution of a timestamp sample 
+    """ Plots a distribution of a timestamp sample, sample should not have any
+    null values 
     
     Parameters
     ----------
     sample : array-like of pd.Timestamp
         The dates of which to plot the distribution.
+    freq: string {None, "s", "m", "H", "D", "M", "Y"} (optional, default: None)
+        Determines the bins. Overrides nbins parameters that determines the
+        bins by default.
+    nbins: int (optional, default: 300)
+        Number of bins to plot (if too big, the bars are too slim to see).
+    log_scale: bool (optional, default: True)
+        Wether to set the y axis scale to be logarithmic.
+    sample_info: bool (optional, default: True)
+        Wether to write the sample size (set to True because it's usually 
+        useful to have this basic info).
+    title: str or None (optional, default: None)
+        Title of the plot. Set to None for no title.
+    filename: str or None (optional, default: None)
+        The path where to save the plot. Set to None to not save the plot.
+    """
+    dist_table = get_dist_table(sample)
+    fig = dist_table_time_series_distribution(
+        dist_table, **_reset_kwargs(kwargs)
+    )
+    fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
+    if sample_info:
+        fig = _add_sample_info(fig, sample_size=len(sample))
+    _save_plotly_fig(fig, filename=filename)
+    return fig
+
+
+def dist_table_time_series_distribution(
+    dist_table,
+    freq=None,
+    nbins=300,
+    log_scale=False,
+    title=None,
+    sample_info=True,
+    filename=None,
+    date_min=None,
+    date_max=None,
+    **kwargs,
+):
+    """ Plots a time series distribution from a dist table
+    A dist table is a pd.DataFrame with two columns: 
+        - value: list of values
+        - freq: frequency of those values
+    
+    Parameters
+    ----------
+    dist_table : pd.DataFrame with 'value' and 'freq' columns (dist table)
+        The dist table of dates of which to plot the distribution.
+    freq: string {None, "s", "m", "H", "D", "M", "Y"} (optional, default: None)
+        Determines the bins. Overrides nbins parameters that determines the
+        bins by default.
+    nbins: int (optional, default: 300)
+        Number of bins to plot (if too big, the bars are too slim to see).
+    log_scale: bool (optional, default: True)
+        Wether to set the y axis scale to be logarithmic.
+    sample_info: bool (optional, default: True)
+        Wether to write the sample size (set to True because it's usually 
+        useful to have this basic info).
+    title: str or None (optional, default: None)
+        Title of the plot. Set to None for no title.
+    filename: str or None (optional, default: None)
+        The path where to save the plot. Set to None to not save the plot.
+    date_min: pd.Timestamp (optional, default None)
+        Minimum date to display. Allows to remove outliers.
+    date_max: pd.Timestamp (optional, default None)
+        Maximum date to display. Allows to remove outliers.
+    """
+    # Removing outliers given by date_min and date_max
+    if date_min is not None:
+        dist_table = dist_table[dist_table.value >= date_min]
+    if date_max is not None:
+        dist_table = dist_table[dist_table.value <= date_max]
+
+    # Setting the time frequency to the given freq
+    # Or, if freq is None, to have an acceptable number of bins
+    if freq is None:
+        timedelta = np.max(dist_table.value) - np.min(dist_table.value)
+        seconds = timedelta.days * 24 * 60 * 60
+        if len(dist_table.value) > nbins or seconds > nbins:
+            dist_table.value = dist_table.value.map(
+                lambda x: x.replace(second=0)
+            )
+            dist_table = dist_table.groupby("value").sum().reset_index()
+            minutes = timedelta.days * 24 * 60
+            if len(dist_table.value) > nbins or minutes > nbins:
+                dist_table.value = dist_table.value.map(
+                    lambda x: x.replace(minute=0)
+                )
+                dist_table = dist_table.groupby("value").sum().reset_index()
+                hours = timedelta.days * 24
+                if len(dist_table.value) > nbins or hours > nbins:
+                    dist_table.value = dist_table.value.map(
+                        lambda x: x.replace(hour=0)
+                    )
+                    dist_table = (
+                        dist_table.groupby("value").sum().reset_index()
+                    )
+                    days = timedelta.days
+                    if len(dist_table.value) > nbins or days > nbins:
+                        dist_table.value = dist_table.value.map(
+                            lambda x: x.replace(day=1)
+                        )
+                        dist_table = (
+                            dist_table.groupby("value").sum().reset_index()
+                        )
+                        months = timedelta.days / 30
+                        if len(dist_table.value) > nbins or months > nbins:
+                            dist_table.value = dist_table.value.map(
+                                lambda x: x.replace(month=1)
+                            )
+                            dist_table = (
+                                dist_table.groupby("value").sum().reset_index()
+                            )
+    else:
+        freq_dict = {"s": 0, "m": 1, "H": 2, "D": 3, "M": 4, "Y": 5}
+        num_freq = freq_dict[freq]
+        if num_freq > 0:
+            sample = list(map(lambda x: x.replace(second=0), dist_table.value))
+            dist_table = dist_table.groupby("value").sum().reset_index()
+            if num_freq > 1:
+                sample = list(
+                    map(lambda x: x.replace(minute=0), dist_table.value)
+                )
+                dist_table = dist_table.groupby("value").sum().reset_index()
+                if num_freq > 2:
+                    sample = list(
+                        map(lambda x: x.replace(hour=0), dist_table.value)
+                    )
+                    dist_table = (
+                        dist_table.groupby("value").sum().reset_index()
+                    )
+                    if num_freq > 3:
+                        sample = list(
+                            map(lambda x: x.replace(day=1), dist_table.value)
+                        )
+                        dist_table = (
+                            dist_table.groupby("value").sum().reset_index()
+                        )
+                        if num_freq > 4:
+                            sample = list(
+                                map(
+                                    lambda x: x.replace(month=1),
+                                    dist_table.value,
+                                )
+                            )
+                            dist_table = (
+                                dist_table.groupby("value").sum().reset_index()
+                            )
+
+    # Plotting the figure
+    fig = go.Figure([go.Bar(x=dist_table.value, y=dist_table.freq)])
+    fig = fig.update_xaxes(
+        rangeslider_visible=True,
+        rangeselector={
+            "buttons": [
+                dict(
+                    count=1, label="Last year", step="year", stepmode="todate"
+                ),
+                dict(step="all", label="All"),
+            ]
+        },
+    )
+    fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
+    if sample_info:
+        fig = _add_sample_info(fig, sample_size=len(sample))
+    _save_plotly_fig(fig, filename=filename)
+    return fig
+
+
+def dist_table_numeric_distribution(
+    dist_table,
+    title=None,
+    filename=None,
+    sample_info=True,
+    num_info=True,
+    log_scale=True,
+    nbins=200,
+    **kwargs,
+):
+    """ Plots a numeric distribution from a dist table
+    A dist table is a pd.DataFrame with two columns: 
+        - value: list of values
+        - freq: frequency of those values
+    
+    Parameters
+    ----------
+    dist_table : array-like of numeric values
+        The numeric values for which to plot the distribution. Should not have 
+        any null values.
     title: str or None (optional, default: None)
         Title of the plot. Set to None for no title.
     filename: str or None (optional, default: None)
@@ -380,91 +571,30 @@ def time_series_distribution(
     sample_info: bool (optional, default: True)
         Wether to write the sample size (set to True because it's usually 
         useful to have this basic info).
+    num_info: bool (optional, default: False)
+        Wether to write the numerical info on the plot.
     log_scale: bool (optional, default: True)
         Wether to set the y axis scale to be logarithmic.
     nbins: int (optional, default: 200)
-        Number of dates to plot (if too big, the bars are too slim to see).
-    time_freq: pd.Timestamp's freq (optional, default: "D")
-        You can group the dates in freq: 'W' for weeks of year, 'M' for months, 
-        etc. This allows you to go into less detail but see all values globally 
-        if your sample is too large.
+        Number of bins to plot (if too big, the bars are too slim to see).
     """
-    if time_freq != "D":
-        sample = list(
-            map(
-                lambda timestamp: timestamp.to_period(
-                    time_freq
-                ).to_timestamp(),
-                sample,
-            )
-        )
-
-    sample_distribution = get_dist_table(sample)
-    sample_distribution = (
-        pd.DataFrame(
-            {
-                "value": pd.date_range(
-                    start=np.min(sample_distribution.value),
-                    end=np.max(sample_distribution.value),
-                    freq=time_freq,
-                )
-            }
-        )
-        .join(sample_distribution.set_index("value"), on="value")
-        .fillna(0)
+    # Plotting the figure
+    dist_table_sample = get_sample(dist_table)
+    fig = sample_numeric_distribution(
+        dist_table_sample, **_reset_kwargs(kwargs)
     )
-
-    if nbins > sample_distribution.shape[0]:
-        nbins = sample_distribution.shape[0]
-
-    if sample_distribution.shape[0] > nbins:
-        sample_distributions = sample_distribution.divide_dataset(
-            int(np.ceil(sample_distribution.shape[0] / nbins)),
-        )
-        fig = go.Figure()
-        for i, data in enumerate(sample_distributions):
-            if np.any([val != 0 for val in data.freq]):
-                fig.add_trace(go.Bar(visible=False, x=data.value, y=data.freq))
-        fig.data[-1].visible = True
-        steps = []
-        for i in range(len(fig.data)):
-            visibility = [False] * len(fig.data)
-            visibility[i] = True
-            steps.append(
-                dict(
-                    method="restyle",
-                    args=["visible", visibility],
-                    label=str(i),
-                )
-            )
-
-        sliders = [
-            dict(
-                active=len(fig.data) - 1,
-                x=0,
-                y=-0.2,
-                currentvalue={"prefix": "Slice: "},
-                steps=steps,
-            )
-        ]
-
-        fig.update_layout(sliders=sliders)
-    else:
-        fig = go.Figure()
-        fig.add_trace(
-            go.Bar(x=sample_distribution.value, y=sample_distribution.freq)
-        )
 
     # Layout and saving parameters
     fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
     if sample_info:
-        fig = _add_sample_info(fig, sample_size=len(sample))
+        fig = _add_sample_info(fig, sample_size=len(dist_table_sample))
+    if num_info:
+        fig = _add_num_info(fig, [float(val) for val in dist_table_sample])
     _save_plotly_fig(fig, filename=filename)
-
     return fig
 
 
-def numeric_distribution(
+def sample_numeric_distribution(
     sample,
     title=None,
     filename=None,
@@ -472,6 +602,8 @@ def numeric_distribution(
     num_info=True,
     log_scale=True,
     nbins=200,
+    n_min=None,
+    n_max=None,
     **kwargs,
 ):
     """ Plots the distribution of a numeric sample with no null values
@@ -494,14 +626,23 @@ def numeric_distribution(
         Wether to set the y axis scale to be logarithmic.
     nbins: int (optional, default: 200)
         Number of bins to plot (if too big, the bars are too slim to see).
+    n_min: int (optional, default: None)
+        Minimum value to display. Allows to remove outliers.
+    n_max: int (optional, default: None)
+        Maximum value to display. Allows to remove outliers.
     """
+    if n_min is not None:
+        sample = sample[sample >= n_min]
+    if n_max is not None:
+        sample = sample[sample <= n_max]
+
     if len(np.unique(sample)) <= 20:
-        fig = text_distribution(
+        fig = sample_attribute_distribution(
             [str(val) for val in sample], **_reset_kwargs(kwargs)
         )
     else:
         sample_range = int(np.ceil(np.max(sample) - np.min(sample)))
-        if sample_range > nbins:
+        if sample_range > nbins or len(np.unique(sample)) > nbins:
             fig = go.Figure(data=[go.Histogram(x=sample, nbinsx=nbins)])
         else:
             fig = go.Figure(data=[go.Histogram(x=sample)])
@@ -515,14 +656,81 @@ def numeric_distribution(
     return fig
 
 
-def text_distribution(
+def dist_table_attribute_distribution(
+    dist_table,
+    title=None,
+    filename=None,
+    sample_info=True,
+    log_scale=True,
+    att_as_pie=False,
+    nbins=20,
+    nbiggest=None,
+    **kwargs,
+):
+    """ Plots the 'attribute' distribution of dist table
+    A dist table is a pd.DataFrame with two columns: 
+        - value: list of values
+        - freq: frequency of those values
+
+    Parameters
+    ----------
+    sample : array-like of attributes values
+        The attributes values for which to plot the distribution. Should not 
+        have any null values.
+    title: str or None (optional, default: None)
+        Title of the plot. Set to None for no title.
+    filename: str or None (optional, default: None)
+        The path where to save the plot. Set to None to not save the plot.
+    sample_info: bool (optional, default: True)
+        Wether to write the sample size (set to True because it's usually 
+        useful to have this basic info).
+    log_scale: bool (optional, default: True)
+        Wether to set the y axis scale to be logarithmic.
+    att_as_pie: bool (optional, default: False)
+        Attributes values are plotted either as a pie or bar chart.
+    nbins: int (optional, default: 20)
+        Number of maximum number of values to plot. For attributes values, it 
+        quickly becomes unreadable. If the number of unique values is too big, 
+        We'll evaluate if there's a limited number of formats for the sample, 
+        and if not we'll resort to plotting the length of the different values.
+    nbiggest: int (optional, default None)
+        Number of biggest categories to display (allows to focus on the biggest
+        categories when the number of categories is too high)
+    """
+    # Redirecting to numeric distribution (pareto) if too many attributes
+    if len(dist_table.value) > nbins:
+        dist_table = dist_table.sort_values("freq", ascending=False)
+        dist_table["value"] = np.arange(dist_table.shape[0])
+        if nbiggest is not None:
+            dist_table = dist_table[dist_table.value <= nbiggest]
+        fig = dist_table_numeric_distribution(
+            dist_table, **_reset_kwargs(kwargs)
+        )
+    else:
+        if att_as_pie:
+            fig = dist_table_pie_chart(dist_table, **_reset_kwargs(kwargs))
+        else:
+            fig = dist_table_bar_chart(dist_table, **_reset_kwargs(kwargs))
+
+    # Layout and saving parameters
+    fig = _set_plotly_layout(
+        fig, title=title, log_scale=(log_scale and not att_as_pie)
+    )
+    if sample_info:
+        fig = _add_sample_info(fig, sample_size=len(dist_table))
+    _save_plotly_fig(fig, filename=filename)
+    return fig
+
+
+def sample_attribute_distribution(
     sample,
     title=None,
     filename=None,
     sample_info=True,
     log_scale=True,
-    text_as_pie=True,
+    att_as_pie=False,
     nbins=20,
+    nbiggest=None,
     **kwargs,
 ):
     """ Plots the distribution of an 'attribute' sample with no null values
@@ -541,31 +749,26 @@ def text_distribution(
         useful to have this basic info).
     log_scale: bool (optional, default: True)
         Wether to set the y axis scale to be logarithmic.
-    text_as_pie: bool (optional, default: True)
+    att_as_pie: bool (optional, default: False)
         Attributes values are plotted either as a pie or bar chart.
     nbins: int (optional, default: 20)
         Number of maximum number of values to plot. For attributes values, it 
         quickly becomes unreadable. If the number of unique values is too big, 
         We'll evaluate if there's a limited number of formats for the sample, 
         and if not we'll resort to plotting the length of the different values.
+    nbiggest: int (optional, default None)
+        Number of biggest categories to display (allows to focus on the biggest
+        categories when the number of categories is too high)
     """
-    sample_distribution = get_dist_table(sample)
-    if sample_distribution.shape[0] > nbins:
-        formats = list(map(lambda x: get_string_format(x), sample))
-        format_distribution = get_dist_table(formats)
-        if format_distribution.shape[0] > nbins:
-            lengths = pd.Series([len(val) for val in sample])
-            fig = numeric_distribution(lengths)
-        else:
-            fig = text_distribution(formats, **_reset_kwargs(kwargs))
-    else:
-        if text_as_pie:
-            fig = sample_pie_chart(sample, **_reset_kwargs(kwargs))
-        else:
-            fig = sample_bar_chart(sample, **_reset_kwargs(kwargs))
+    # Plotting the figure
+    sample_dist_table = get_dist_table(sample)
+    fig = dist_table_attribute_distribution(
+        sample_dist_table, **_reset_kwargs(kwargs)
+    )
+
     # Layout and saving parameters
     fig = _set_plotly_layout(
-        fig, title=title, log_scale=(log_scale and not text_as_pie)
+        fig, title=title, log_scale=(log_scale and not att_as_pie)
     )
     if sample_info:
         fig = _add_sample_info(fig, sample_size=len(sample))

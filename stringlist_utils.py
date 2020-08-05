@@ -22,6 +22,58 @@ def stringlist_length(stringlist):
     return length
 
 
+def stringlist_unique(stringlist):
+    """ Applies np.unique to the stringlist 
+    A stringlist is a list of values concatenated in a string with ';' 
+    separator. It's useful for labeling observations (an observation can have 
+    0, 1 or several labels, which will be concatenated in a stringlist).
+
+    Parameters
+    ----------
+    stringlist: str
+        List of values concatenated in a string with ';' separator.
+    """
+    if isinstance(stringlist, str) and (stringlist != ""):
+        stringlist = ";".join(np.unique(stringlist.split(";")))
+    else:
+        stringlist = np.nan
+    return stringlist
+
+
+def translate_stringlist(stringlist, dictionary, default="nan"):
+    """ Replaces values in stringlist by its correspondance in dictionary
+
+    Parameters
+    ----------
+    stringlist: str
+        List of values concatenated in a string with ';' separator.
+    dictionary: pd.DataFrame
+        Value mapping. Must have 'old' and 'new' columns.
+    default: str or None (optional, default "nan")
+        Default value to set if no new value is found. Set to None to not map
+        the value if there's no value to map to.
+    """
+    if isinstance(stringlist, str) and stringlist != "":
+        dictionary = dictionary.dropna()
+        dictionary["old"] = dictionary["old"].map(str)
+        dictionary = dictionary.set_index("old")["new"]
+
+        stringlist = stringlist.split(";")
+        new_stringlist = []
+        for value in stringlist:
+            try:
+                new_stringlist.append(str(dictionary[value]))
+            except TypeError:
+                new_stringlist.append(default)
+            except KeyError:
+                new_stringlist.append(default)
+        stringlist = new_stringlist
+        stringlist = ";".join(stringlist)
+    else:
+        stringlist = np.nan
+    return stringlist
+
+
 def append_stringlists(stringlists):
     """ Returns a stringlist composed of all stringlists concatenated
     A stringlist is a list of values concatenated in a string with ';' 
@@ -37,6 +89,10 @@ def append_stringlists(stringlists):
     for stringlist in stringlists:
         if isinstance(stringlist, str) and (stringlist != ""):
             res += stringlist.split(";")
+    if len(res) > 0:
+        res = ";".join(res)
+    else:
+        res = np.nan
     return res
 
 
