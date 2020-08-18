@@ -43,13 +43,7 @@ def _add_plotly_info(fig, x, y, text, align="right"):
         The alignment of the text
     """
     fig.add_annotation(
-        x=x,
-        y=y,
-        showarrow=False,
-        text=text,
-        xref="paper",
-        yref="paper",
-        align=align,
+        x=x, y=y, showarrow=False, text=text, xref="paper", yref="paper", align=align,
     )
     return fig
 
@@ -82,23 +76,11 @@ def _add_num_info(fig, num_sample):
         The numeric sample for which to compute the information. Must not have 
         null values.
     """
-    text = (
-        f"Q1: {round(np.quantile(num_sample, 0.25), 2)}"
-        + "<br>"
-        + f"min: {round(np.min(num_sample), 2)}"
-    )
+    text = f"Q1: {round(np.quantile(num_sample, 0.25), 2)}" + "<br>" + f"min: {round(np.min(num_sample), 2)}"
     fig = _add_plotly_info(fig, x=0, y=1.15, text=text, align="left")
-    text = (
-        f"med: {round(np.quantile(num_sample, 0.5), 2)}"
-        + "<br>"
-        + f"mean: {round(np.mean(num_sample), 2)}"
-    )
+    text = f"med: {round(np.quantile(num_sample, 0.5), 2)}" + "<br>" + f"mean: {round(np.mean(num_sample), 2)}"
     fig = _add_plotly_info(fig, x=0.15, y=1.15, text=text, align="left")
-    text = (
-        f"Q3: {round(np.quantile(num_sample, 0.75), 2)}"
-        + "<br>"
-        + f"max: {round(np.max(num_sample), 2)}"
-    )
+    text = f"Q3: {round(np.quantile(num_sample, 0.75), 2)}" + "<br>" + f"max: {round(np.max(num_sample), 2)}"
     fig = _add_plotly_info(fig, x=0.4, y=1.15, text=text, align="left")
     return fig
 
@@ -147,9 +129,7 @@ def _str_is_float(string):
         return False
 
 
-def sample_pie_chart(
-    sample, title=None, filename=None, sample_info=True, **kwargs
-):
+def sample_pie_chart(sample, title=None, filename=None, sample_info=True, **kwargs):
     """ Plots a pie chart from a sample, best suitable for attributes sample, 
     sample should not have any null values
 
@@ -181,12 +161,7 @@ def sample_pie_chart(
 
 
 def dist_table_pie_chart(
-    sample_dist_table,
-    title=None,
-    filename=None,
-    sample_info=True,
-    other_cat=True,
-    **kwargs,
+    sample_dist_table, title=None, filename=None, sample_info=True, other_cat=True, **kwargs,
 ):
     """ Plots a pie chart from a dist table
     A dist table is a pd.DataFrame with two columns: 
@@ -218,16 +193,12 @@ def dist_table_pie_chart(
         total = np.sum(values)
         other_cat = (values / total) < 0.01
         if np.sum(other_cat) > 1:
-            labels = list(labels[~other_cat]) + [
-                f"Other ({np.sum(other_cat)})"
-            ]
+            labels = list(labels[~other_cat]) + [f"Other ({np.sum(other_cat)})"]
             other_values = np.sum(values[other_cat])
             values = list(values[~other_cat]) + [other_values]
 
     # Plotting the figure
-    fig = go.Figure(
-        data=[go.Pie(labels=labels, values=values, textinfo="label+percent")]
-    )
+    fig = go.Figure(data=[go.Pie(labels=labels, values=values, textinfo="label+percent")])
 
     # Layout and saving parameters
     fig = _set_plotly_layout(fig, title=title, log_scale=False)
@@ -238,12 +209,7 @@ def dist_table_pie_chart(
 
 
 def sample_bar_chart(
-    sample,
-    title=None,
-    filename=None,
-    sample_info=True,
-    log_scale=True,
-    **kwargs,
+    sample, title=None, filename=None, sample_info=True, log_scale=True, **kwargs,
 ):
     """ Plots a bar chart from a sample, best suitable for 'attributes' sample, 
     sample should not have any null values
@@ -277,12 +243,7 @@ def sample_bar_chart(
 
 
 def dist_table_bar_chart(
-    sample_dist_table,
-    title=None,
-    filename=None,
-    sample_info=True,
-    log_scale=True,
-    **kwargs,
+    sample_dist_table, title=None, filename=None, sample_info=True, log_scale=True, **kwargs,
 ):
     """ Plots a bar chart from a dist table
     A dist table is a pd.DataFrame with two columns: 
@@ -310,9 +271,7 @@ def dist_table_bar_chart(
     values = sample_dist_table.freq
 
     # Plotting the figure
-    fig = go.Figure(
-        [go.Bar(x=labels, y=values, text=values, textposition="auto")]
-    )
+    fig = go.Figure([go.Bar(x=labels, y=values, text=values, textposition="auto")])
 
     # Layout and saving parameters
     fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
@@ -322,9 +281,7 @@ def dist_table_bar_chart(
     return fig
 
 
-def scatter_plot(
-    x, y, labels=None, title=None, filename=None, sample_info=True
-):
+def scatter_plot(x, y, labels=None, title=None, filename=None, sample_info=True):
     """ Plots a scatter plot with (x, y) point coordinates 
     Parameters x and y should have the same length.
     
@@ -360,14 +317,7 @@ def scatter_plot(
 
 
 def sample_time_series_distribution(
-    sample,
-    freq=None,
-    nbins=300,
-    log_scale=False,
-    title=None,
-    sample_info=True,
-    filename=None,
-    **kwargs,
+    sample, freq=None, nbins=300, log_scale=False, title=None, sample_info=True, filename=None, **kwargs,
 ):
     """ Plots a distribution of a timestamp sample, sample should not have any
     null values 
@@ -392,9 +342,7 @@ def sample_time_series_distribution(
         The path where to save the plot. Set to None to not save the plot.
     """
     dist_table = get_dist_table(sample)
-    fig = dist_table_time_series_distribution(
-        dist_table, **_reset_kwargs(kwargs)
-    )
+    fig = dist_table_time_series_distribution(dist_table, **_reset_kwargs(kwargs))
     fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
     if sample_info:
         fig = _add_sample_info(fig, sample_size=len(sample))
@@ -454,40 +402,24 @@ def dist_table_time_series_distribution(
         timedelta = np.max(dist_table.value) - np.min(dist_table.value)
         seconds = timedelta.days * 24 * 60 * 60
         if len(dist_table.value) > nbins or seconds > nbins:
-            dist_table.value = dist_table.value.map(
-                lambda x: x.replace(second=0)
-            )
+            dist_table.value = dist_table.value.map(lambda x: x.replace(second=0))
             dist_table = dist_table.groupby("value").sum().reset_index()
             minutes = timedelta.days * 24 * 60
             if len(dist_table.value) > nbins or minutes > nbins:
-                dist_table.value = dist_table.value.map(
-                    lambda x: x.replace(minute=0)
-                )
+                dist_table.value = dist_table.value.map(lambda x: x.replace(minute=0))
                 dist_table = dist_table.groupby("value").sum().reset_index()
                 hours = timedelta.days * 24
                 if len(dist_table.value) > nbins or hours > nbins:
-                    dist_table.value = dist_table.value.map(
-                        lambda x: x.replace(hour=0)
-                    )
-                    dist_table = (
-                        dist_table.groupby("value").sum().reset_index()
-                    )
+                    dist_table.value = dist_table.value.map(lambda x: x.replace(hour=0))
+                    dist_table = dist_table.groupby("value").sum().reset_index()
                     days = timedelta.days
                     if len(dist_table.value) > nbins or days > nbins:
-                        dist_table.value = dist_table.value.map(
-                            lambda x: x.replace(day=1)
-                        )
-                        dist_table = (
-                            dist_table.groupby("value").sum().reset_index()
-                        )
+                        dist_table.value = dist_table.value.map(lambda x: x.replace(day=1))
+                        dist_table = dist_table.groupby("value").sum().reset_index()
                         months = timedelta.days / 30
                         if len(dist_table.value) > nbins or months > nbins:
-                            dist_table.value = dist_table.value.map(
-                                lambda x: x.replace(month=1)
-                            )
-                            dist_table = (
-                                dist_table.groupby("value").sum().reset_index()
-                            )
+                            dist_table.value = dist_table.value.map(lambda x: x.replace(month=1))
+                            dist_table = dist_table.groupby("value").sum().reset_index()
     else:
         freq_dict = {"s": 0, "m": 1, "H": 2, "D": 3, "M": 4, "Y": 5}
         num_freq = freq_dict[freq]
@@ -495,34 +427,17 @@ def dist_table_time_series_distribution(
             sample = list(map(lambda x: x.replace(second=0), dist_table.value))
             dist_table = dist_table.groupby("value").sum().reset_index()
             if num_freq > 1:
-                sample = list(
-                    map(lambda x: x.replace(minute=0), dist_table.value)
-                )
+                sample = list(map(lambda x: x.replace(minute=0), dist_table.value))
                 dist_table = dist_table.groupby("value").sum().reset_index()
                 if num_freq > 2:
-                    sample = list(
-                        map(lambda x: x.replace(hour=0), dist_table.value)
-                    )
-                    dist_table = (
-                        dist_table.groupby("value").sum().reset_index()
-                    )
+                    sample = list(map(lambda x: x.replace(hour=0), dist_table.value))
+                    dist_table = dist_table.groupby("value").sum().reset_index()
                     if num_freq > 3:
-                        sample = list(
-                            map(lambda x: x.replace(day=1), dist_table.value)
-                        )
-                        dist_table = (
-                            dist_table.groupby("value").sum().reset_index()
-                        )
+                        sample = list(map(lambda x: x.replace(day=1), dist_table.value))
+                        dist_table = dist_table.groupby("value").sum().reset_index()
                         if num_freq > 4:
-                            sample = list(
-                                map(
-                                    lambda x: x.replace(month=1),
-                                    dist_table.value,
-                                )
-                            )
-                            dist_table = (
-                                dist_table.groupby("value").sum().reset_index()
-                            )
+                            sample = list(map(lambda x: x.replace(month=1), dist_table.value,))
+                            dist_table = dist_table.groupby("value").sum().reset_index()
 
     # Plotting the figure
     fig = go.Figure([go.Bar(x=dist_table.value, y=dist_table.freq)])
@@ -530,9 +445,7 @@ def dist_table_time_series_distribution(
         rangeslider_visible=True,
         rangeselector={
             "buttons": [
-                dict(
-                    count=1, label="Last year", step="year", stepmode="todate"
-                ),
+                dict(count=1, label="Last year", step="year", stepmode="todate"),
                 dict(step="all", label="All"),
             ]
         },
@@ -545,14 +458,7 @@ def dist_table_time_series_distribution(
 
 
 def dist_table_numeric_distribution(
-    dist_table,
-    title=None,
-    filename=None,
-    sample_info=True,
-    num_info=True,
-    log_scale=True,
-    nbins=200,
-    **kwargs,
+    dist_table, title=None, filename=None, sample_info=True, num_info=True, log_scale=True, nbins=200, **kwargs,
 ):
     """ Plots a numeric distribution from a dist table
     A dist table is a pd.DataFrame with two columns: 
@@ -580,9 +486,7 @@ def dist_table_numeric_distribution(
     """
     # Plotting the figure
     dist_table_sample = get_sample(dist_table)
-    fig = sample_numeric_distribution(
-        dist_table_sample, **_reset_kwargs(kwargs)
-    )
+    fig = sample_numeric_distribution(dist_table_sample, **_reset_kwargs(kwargs))
 
     # Layout and saving parameters
     fig = _set_plotly_layout(fig, title=title, log_scale=log_scale)
@@ -637,9 +541,7 @@ def sample_numeric_distribution(
         sample = sample[sample <= n_max]
 
     if len(np.unique(sample)) <= 20:
-        fig = sample_attribute_distribution(
-            [str(val) for val in sample], **_reset_kwargs(kwargs)
-        )
+        fig = sample_attribute_distribution([str(val) for val in sample], **_reset_kwargs(kwargs))
     else:
         sample_range = int(np.ceil(np.max(sample) - np.min(sample)))
         if sample_range > nbins or len(np.unique(sample)) > nbins:
@@ -703,9 +605,7 @@ def dist_table_attribute_distribution(
         dist_table["value"] = np.arange(dist_table.shape[0])
         if nbiggest is not None:
             dist_table = dist_table[dist_table.value <= nbiggest]
-        fig = dist_table_numeric_distribution(
-            dist_table, **_reset_kwargs(kwargs)
-        )
+        fig = dist_table_numeric_distribution(dist_table, **_reset_kwargs(kwargs))
     else:
         if att_as_pie:
             fig = dist_table_pie_chart(dist_table, **_reset_kwargs(kwargs))
@@ -713,9 +613,7 @@ def dist_table_attribute_distribution(
             fig = dist_table_bar_chart(dist_table, **_reset_kwargs(kwargs))
 
     # Layout and saving parameters
-    fig = _set_plotly_layout(
-        fig, title=title, log_scale=(log_scale and not att_as_pie)
-    )
+    fig = _set_plotly_layout(fig, title=title, log_scale=(log_scale and not att_as_pie))
     if sample_info:
         fig = _add_sample_info(fig, sample_size=len(dist_table))
     _save_plotly_fig(fig, filename=filename)
@@ -762,15 +660,97 @@ def sample_attribute_distribution(
     """
     # Plotting the figure
     sample_dist_table = get_dist_table(sample)
-    fig = dist_table_attribute_distribution(
-        sample_dist_table, **_reset_kwargs(kwargs)
-    )
+    fig = dist_table_attribute_distribution(sample_dist_table, **_reset_kwargs(kwargs))
 
     # Layout and saving parameters
-    fig = _set_plotly_layout(
-        fig, title=title, log_scale=(log_scale and not att_as_pie)
-    )
+    fig = _set_plotly_layout(fig, title=title, log_scale=(log_scale and not att_as_pie))
     if sample_info:
         fig = _add_sample_info(fig, sample_size=len(sample))
     _save_plotly_fig(fig, filename=filename)
     return fig
+
+
+def plot_line_with_slider(x, ys, slider, title=None):
+    """Plots a line that evolves with a slider.
+    len(ys) == len(slider)
+    
+    Parameters
+    ----------
+    x: array-like of float
+        The x-coordinates of the plot
+    ys: list of array-like of float
+        The list of y-coordinates of the plot
+    slider: array-like
+        The values on which to slide
+    """
+    if len(ys) != len(slider):
+        raise ValueError("Argument ys and argument slider must have the same length")
+
+    fig = go.Figure()
+    for y in ys:
+        fig.add_trace(go.Scatter(x=x, y=y, mode="lines", visible=False))
+    fig.data[0].visible = True
+
+    steps = []
+    for i, slider_value in enumerate(slider):
+        visible = [False] * (len(fig.data))
+        visible[i] = True
+        steps.append(dict(method="restyle", args=["visible", visible], label=str(slider_value),))
+    sliders = [dict(active=0, x=0, y=-0.2, currentvalue={"prefix": "Slider: "}, steps=steps,)]
+
+    fig.update_layout(sliders=sliders)
+
+    if title is not None:
+        fig.update_layout(title=title)
+
+    return fig
+
+
+def plot_lines_with_slider(x, ys, slider, title=None):
+    """Plots several lines that evolve with a slider.
+    len(ys) == len(slider)
+    All the dicts in ys must have the same length.
+    All the ys must have the same length as x.
+    
+    Parameters
+    ----------
+    x: array-like of float
+        The x-coordinates of the plot
+    ys: list of dict of array-like of float
+        The list of y-coordinates of the plot. The dict key is the line name.
+    slider: array-like
+        The values on which to slide
+    """
+    if len(ys) != len(slider):
+        raise ValueError("Argument ys and argument slider must have the same length")
+    if len(np.unique([len(y) for y in ys])) > 1:
+        raise ValueError("The dicts in ys must all have the same length")
+    for y in ys:
+        for name, val in y:
+            if len(val) != len(x):
+                raise ValueError("All the values in ys must have the same length as x")
+
+    n_lines = len(ys[0])
+
+    fig = go.Figure()
+    for y in ys:
+        for name, val in y:
+            fig.add_trace(go.Scatter(x=x, y=val, name=name, mode="lines", visible=False))
+    for i in range(n_lines):
+        fig.data[i].visible = True
+
+    steps = []
+    for i, slider_value in enumerate(slider):
+        visible = [False] * (len(fig.data))
+        for j in range(n_lines):
+            visible[n_lines * i + j] = True
+        steps.append(dict(method="restyle", args=["visible", visible], label=str(slider_value),))
+    sliders = [dict(active=0, x=0, y=-0.2, currentvalue={"prefix": "Slider: "}, steps=steps,)]
+
+    fig.update_layout(sliders=sliders)
+
+    if title is not None:
+        fig.update_layout(title=title)
+
+    return fig
+
