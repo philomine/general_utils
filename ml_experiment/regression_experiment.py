@@ -5,15 +5,15 @@ import numpy as np
 import plotly.graph_objects as go
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-from ..ml_logger import MLLogger
 from ..plotly_reporter import generate_report
+from .ml_logger import MLLogger
 
 
 class RegressionExperiment(MLLogger):
     def __init__(self, experiment_name):
         """ Create an experiment for a regression problem. This class relies on 
-        MLLogger class. TODO: inheritance. It adds plotly reports with the 
-        results log and histograms of errors.
+        MLLogger class. It adds plotly reports with the results log and
+        histograms of errors.
 
         Parameters
         ----------
@@ -28,50 +28,57 @@ class RegressionExperiment(MLLogger):
         # If the experiment already exists, check for error plots
         if os.path.isfile(self._experiment_filepath):
             logger = pickle.load(open(self._experiment_filepath, "rb"))
-            if hasattr(logger, "error_plots"):
-                self.error_plots = logger.error_plots
+            if hasattr(logger, "report_content"):
+                self.report_content = logger.report_content
             else:
-                self.error_plots = []
+                self.report_content = []
                 self._save()
         # Otherwise, init the error plots
         else:
-            self.error_plots = []
+            self.report_content = []
             self._save()
 
-    def experiment(self, models, data):
+    def experiment(self, models, data, reporter=None):
         """ Launches an experiment: trains the data and tests the results on 
         every of the models, logs the results and plots the error logs.
         
         Parameters
         ----------
-        models: list of tuples (scikit-learn model, list of kwargs)
+        models: dict of models with fit and predict methods {"model name": model}
             Model to fit and predict
         data: list of 4 np.array (2d, 1d, 2d, 1d)
             X_train, y_train, X_test, y_test
+        reporter: function 
+            Returns figures to add to the report
         """
         X_train, y_train, X_test, y_test = data
-        for model, kwargs_list in models:
-            for i, kwargs in enumerate(kwargs_list):
-                mod = model(**kwargs)
+        for model_name, model in models.items():
+            if "name" in self.result_log.columns and model_name in self.result_log["name"]:
+                print(f"There already is a model {model_name} in your experience")
+            else:
                 try:
-                    mod.fit(X_train, y_train)
-                    y_pred = mod.predict(X_test).flatten()
+                    model.fit(X_train, y_train)
+                    y_pred = model.predict(X_test).flatten()
 
-                    name = f"{type(mod).__name__}_{i}"
-                    metrics = kwargs.copy()
+                    metrics = {}
                     metrics["mse"] = mean_squared_error(y_test, y_pred)
                     metrics["mae"] = mean_absolute_error(y_test, y_pred)
 
+                    self.report_content.append(("subtitle", model_name))
+
                     error = y_pred - y_test
                     fig = go.Figure(data=[go.Histogram(x=error)])
-                    fig = fig.update_layout(title=name)
+                    fig = fig.update_layout(title="Error plot")
+                    self.report_content.append(("fig", fig))
 
-                    self.error_plots.append(fig)
-                    self.log(name, mod, metrics)
+                    if reporter is not None:
+                        for fig in reporter(y_test, y_pred):
+                            self.report_content.append(("fig", fig))
+
+                    self.log(model_name, model, metrics)
                 except Exception as e:
                     print(f"Warning: Model {type(mod).__name__} didn't work. Error: {e}")
 
-        report_contents = [("title", self.experiment_name), ("pandas", self.result_log)]
-        for error_plot in self.error_plots:
-            report_contents.append(("fig", error_plot))
-        generate_report(f"./ml_experiments/reports/{self.experiment_name}.html", report_contents)
+        report_content = [("title", self.experiment_name), ("pandas", self.result_log)]
+        report_content = report_content + self.report_content
+        generate_report(f"./ml_experiments/reports/{self.experiment_name}.html", report_content)

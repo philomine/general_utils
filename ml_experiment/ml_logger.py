@@ -70,6 +70,9 @@ class MLLogger:
         metrics["name"] = result_name
         self.result_log = self.result_log.append(metrics, ignore_index=True)
 
-        model_location = f"./ml_experiments/models/{self.experiment_name}/{log_time}_{result_name}.pickle"
+        model_location = f"./ml_experiments/models/{self.experiment_name}/{result_name}.pickle"
         pickle.dump(model, open(model_location, "wb"))
         self._save()
+
+    def load(self, model_name):
+        return pickle.load(open(f"./ml_experiments/models/{self.experiment_name}/{model_name}.pickle", "rb"))
