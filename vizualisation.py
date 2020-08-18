@@ -670,87 +670,33 @@ def sample_attribute_distribution(
     return fig
 
 
-def plot_line_with_slider(x, ys, slider, title=None):
-    """Plots a line that evolves with a slider.
-    len(ys) == len(slider)
-    
-    Parameters
-    ----------
-    x: array-like of float
-        The x-coordinates of the plot
-    ys: list of array-like of float
-        The list of y-coordinates of the plot
-    slider: array-like
-        The values on which to slide
-    """
-    if len(ys) != len(slider):
-        raise ValueError("Argument ys and argument slider must have the same length")
+def add_slider(fig, slider, slider_pos=None, slider_name="Slider"):
+    """The number of traces in fig should be a multiple of slider's len"""
+    if len(fig.data) % len(slider) != 0:
+        raise ValueError("The number of traces in fig should be a multiple of slider's len")
 
-    fig = go.Figure()
-    for y in ys:
-        fig.add_trace(go.Scatter(x=x, y=y, mode="lines", visible=False))
-    fig.data[0].visible = True
+    # Calculating the number of traces per view
+    n_traces = int(len(fig.data) / len(slider))
 
+    # Setting values if none were provided
+    if slider_pos is None:
+        slider_pos = 0
+
+    # Making sure every trace is invisible at first
+    for i in range(len(fig.data)):
+        fig.data[i].visible = False
+    # And setting the default trace to visible
+    for i in range(n_traces):
+        fig.data[n_traces * slider_pos + i].visible = True
+
+    # Creating and adding the slider
     steps = []
     for i, slider_value in enumerate(slider):
         visible = [False] * (len(fig.data))
-        visible[i] = True
-        steps.append(dict(method="restyle", args=["visible", visible], label=str(slider_value),))
-    sliders = [dict(active=0, x=0, y=-0.2, currentvalue={"prefix": "Slider: "}, steps=steps,)]
-
+        for j in range(n_traces):
+            visible[n_traces * i + j] = True
+        steps.append(dict(method="restyle", args=["visible", visible], label=str(slider_value)))
+    sliders = [dict(active=0, x=0, y=-0.2, currentvalue={"prefix": slider_name + ": "}, steps=steps)]
     fig.update_layout(sliders=sliders)
 
-    if title is not None:
-        fig.update_layout(title=title)
-
     return fig
-
-
-def plot_lines_with_slider(x, ys, slider, title=None):
-    """Plots several lines that evolve with a slider.
-    len(ys) == len(slider)
-    All the dicts in ys must have the same length.
-    All the ys must have the same length as x.
-    
-    Parameters
-    ----------
-    x: array-like of float
-        The x-coordinates of the plot
-    ys: list of dict of array-like of float
-        The list of y-coordinates of the plot. The dict key is the line name.
-    slider: array-like
-        The values on which to slide
-    """
-    if len(ys) != len(slider):
-        raise ValueError("Argument ys and argument slider must have the same length")
-    if len(np.unique([len(y) for y in ys])) > 1:
-        raise ValueError("The dicts in ys must all have the same length")
-    for y in ys:
-        for name, val in y:
-            if len(val) != len(x):
-                raise ValueError("All the values in ys must have the same length as x")
-
-    n_lines = len(ys[0])
-
-    fig = go.Figure()
-    for y in ys:
-        for name, val in y:
-            fig.add_trace(go.Scatter(x=x, y=val, name=name, mode="lines", visible=False))
-    for i in range(n_lines):
-        fig.data[i].visible = True
-
-    steps = []
-    for i, slider_value in enumerate(slider):
-        visible = [False] * (len(fig.data))
-        for j in range(n_lines):
-            visible[n_lines * i + j] = True
-        steps.append(dict(method="restyle", args=["visible", visible], label=str(slider_value),))
-    sliders = [dict(active=0, x=0, y=-0.2, currentvalue={"prefix": "Slider: "}, steps=steps,)]
-
-    fig.update_layout(sliders=sliders)
-
-    if title is not None:
-        fig.update_layout(title=title)
-
-    return fig
-
