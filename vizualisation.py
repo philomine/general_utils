@@ -700,3 +700,38 @@ def add_slider(fig, slider, slider_pos=None, slider_name="Slider"):
     fig.update_layout(sliders=sliders)
 
     return fig
+
+
+def add_log_scale_button(fig):
+    """Adds a dropdown menu that lets you switch between linear and log scale.
+    Works only when all traces are visible."""
+    updatemenus = list(
+        [
+            dict(
+                active=1,
+                buttons=list(
+                    [
+                        dict(
+                            label="Log Scale",
+                            method="update",
+                            args=[
+                                {"visible": [True] * len(fig.data)},
+                                {"title": "Log scale", "yaxis": {"type": "log"}},
+                            ],
+                        ),
+                        dict(
+                            label="Linear Scale",
+                            method="update",
+                            args=[
+                                {"visible": [True] * len(fig.data)},
+                                {"title": "Linear scale", "yaxis": {"type": "linear"}},
+                            ],
+                        ),
+                    ]
+                ),
+            )
+        ]
+    )
+
+    fig.update_layout(updatemenus=updatemenus)
+    return fig
