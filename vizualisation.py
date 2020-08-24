@@ -735,3 +735,21 @@ def add_log_scale_button(fig):
 
     fig.update_layout(updatemenus=updatemenus)
     return fig
+
+
+def add_drop_down(fig, drop_down_dict, selected=0):
+    """Adds a dropdown menu displaying certain traces. All this is indicated in
+    drop_down_dict which has the format
+    {"selection name": [True, False, False]}
+    indicating which traces should be displayed by which name.
+    selected should be the number that's selected in the dropdown."""
+    buttons = []
+    for name, visible in drop_down_dict.items():
+        buttons.append(dict(label=name, method="update", args=[{"visible": visible}]))
+    updatemenus = list([dict(active=selected, buttons=list(buttons))])
+    drop_down_names = list(drop_down_dict.keys())
+    for i, vis in enumerate(drop_down_dict[drop_down_names[selected]]):
+        fig.data[i].visible = vis
+
+    fig.update_layout(updatemenus=updatemenus)
+    return fig
