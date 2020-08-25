@@ -35,16 +35,25 @@ class MLLogger:
         pickle.dump(self, open(self._experiment_filepath, "wb"))
 
     def _create_filesystem(self, experiment_name):
-        experiment_models_folder = f"./ml_experiments/models/{experiment_name}"
-
         if not os.path.isdir("./ml_experiments/"):
             os.mkdir("./ml_experiments/")
         if not os.path.isdir("./ml_experiments/results/"):
             os.mkdir("./ml_experiments/results/")
         if not os.path.isdir("./ml_experiments/models/"):
             os.mkdir("./ml_experiments/models/")
-        if not os.path.isdir(experiment_models_folder):
-            os.mkdir(experiment_models_folder)
+        if not os.path.isdir(f"./ml_experiments/models/{experiment_name}"):
+            os.mkdir(f"./ml_experiments/models/{experiment_name}")
+
+    def _delete_filesystem(self, experiment_name):
+        if os.path.isdir("./ml_experiments/"):
+            if os.path.isdir("./ml_experiments/results/"):
+                if os.path.isfile(f"./ml_experiments/results/{experiment_name}.pickle"):
+                    os.remove(f"./ml_experiments/results/{experiment_name}.pickle")
+            if os.path.isdir("./ml_experiments/models/"):
+                if os.path.isdir(f"./ml_experiments/models/{experiment_name}"):
+                    for f in os.listdir(f"./ml_experiments/models/{experiment_name}"):
+                        os.remove(f"./ml_experiments/models/{experiment_name}/{f}")
+                    os.rmdir(f"./ml_experiments/models/{experiment_name}")
 
     def log(self, result_name, model, metrics):
         """ Logs a result in the result log
@@ -75,4 +84,9 @@ class MLLogger:
         self._save()
 
     def load(self, model_name):
+        """Loads a model thanks to the given model name. model_name should be in the saved models."""
         return pickle.load(open(f"./ml_experiments/models/{self.experiment_name}/{model_name}.pickle", "rb"))
+
+    def delete(self):
+        """Deletes the entire experiment."""
+        self._delete_filesystem(self.experiment_name)
