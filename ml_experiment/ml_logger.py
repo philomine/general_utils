@@ -18,7 +18,7 @@ class MLLogger:
             The name of the ML experiment.
         """
         self._create_filesystem(experiment_name)
-        self._experiment_filepath = f"./ml_experiments/results/{experiment_name}.pickle"
+        self._experiment_filepath = f"./ml_experiments/experiments/{experiment_name}.pickle"
 
         # If the experiment already exists, load it
         if os.path.isfile(self._experiment_filepath):
@@ -37,8 +37,8 @@ class MLLogger:
     def _create_filesystem(self, experiment_name):
         if not os.path.isdir("./ml_experiments/"):
             os.mkdir("./ml_experiments/")
-        if not os.path.isdir("./ml_experiments/results/"):
-            os.mkdir("./ml_experiments/results/")
+        if not os.path.isdir("./ml_experiments/experiments/"):
+            os.mkdir("./ml_experiments/experiments/")
         if not os.path.isdir("./ml_experiments/models/"):
             os.mkdir("./ml_experiments/models/")
         if not os.path.isdir(f"./ml_experiments/models/{experiment_name}"):
@@ -46,9 +46,9 @@ class MLLogger:
 
     def _delete_filesystem(self, experiment_name):
         if os.path.isdir("./ml_experiments/"):
-            if os.path.isdir("./ml_experiments/results/"):
-                if os.path.isfile(f"./ml_experiments/results/{experiment_name}.pickle"):
-                    os.remove(f"./ml_experiments/results/{experiment_name}.pickle")
+            if os.path.isdir("./ml_experiments/experiments/"):
+                if os.path.isfile(f"./ml_experiments/experiments/{experiment_name}.pickle"):
+                    os.remove(f"./ml_experiments/experiments/{experiment_name}.pickle")
             if os.path.isdir("./ml_experiments/models/"):
                 if os.path.isdir(f"./ml_experiments/models/{experiment_name}"):
                     for f in os.listdir(f"./ml_experiments/models/{experiment_name}"):
