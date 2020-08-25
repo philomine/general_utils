@@ -3,11 +3,55 @@ import os
 import pickle
 import time
 
+import numpy as np
 import pandas as pd
+from sklearn.model_selection import cross_val_predict, train_test_split
+
+from ..plotly_reporter import generate_report
+
+
+def _train(model, X, y):
+    X_train, X_test, y_train, y_test = train_test_split(X, y)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test).flatten()
+    predictions = pd.DataFrame({"y_true": y_test, "y_pred": y_pred})
+    return model, predictions
+
+
+def _train_binary(model, X, y):
+    X_train, X_test, y_train, y_test = train_test_split(X, y)
+    model.fit(X_train, y_train)
+    y_pred = model.predict_proba(X_test)[:, 1].flatten()
+    predictions = pd.DataFrame({"y_true": y_test, "y_pred": y_pred})
+    return model, predictions
+
+
+def _train_cv(model, X, y, cv):
+    y_pred = np.array([])
+    y_true = np.array([])
+    for train_index, test_index in cv.split(X):
+        X_train = X.copy()[train_index]
+        y_train = y.copy()[train_index]
+        X_test = X.copy()[test_index]
+        y_test = y.copy()[test_index]
+        model.fit(X_train, y_train)
+        y_pred = np.append(y_pred, model.predict(X_test).flatten().copy())
+        y_true = np.append(y_true, y_test.flatten().copy())
+
+    predictions = pd.DataFrame({"y_true": y_true, "y_pred": y_pred})
+    return model, predictions
+
+
+def _get_figures(model_name, y_true, y_pred):
+    return []
+
+
+def _get_metrics(y_true, y_pred):
+    return {}
 
 
 class MLLogger:
-    def __init__(self, experiment_name):
+    def __init__(self, experiment_name, train_function=None, get_figures=None, get_metrics=None):
         """ Create a logger for an experiment. The experiment name will define
         your experiment. To load it later, you'll just have to use the same
         name when initialising the logger.
@@ -16,19 +60,48 @@ class MLLogger:
         ----------
         experiment_name : string
             The name of the ML experiment.
+        train_function: function returning (model, predictions)
+            model is an object with fit and predict attributes and predictions
+            is a pd.DataFrame with y_true and y_pred columns, and also
+            identification if you wish.
+        get_figures: function returning a list of tuples for plotly_reporter
+            Refer to plotly reporter module for expected format. This is a list
+            of figures reporting the performance of a model. Should accept as
+            parameters model_name, y_true, y_pred.
+        get_metrics: function(y_true, y_pred) -> dict(metric_name: metric_value)
+            Function which takes into parameter y_true, y_pred and returns a
+            dict of metrics.
         """
         self._create_filesystem(experiment_name)
-        self._experiment_filepath = f"./ml_experiments/experiments/{experiment_name}.pickle"
+        self._experiment_filepath = f"./ml_experiments/results/{experiment_name}.pickle"
+        if train_function is None:
+            self._train = _train
+        else:
+            self._train = train_function
+        if get_figures is None:
+            self._get_figures = _get_figures
+        else:
+            self._get_figures = get_figures
+        if get_metrics is None:
+            self._get_metrics = _get_metrics
+        else:
+            self._get_metrics = get_metrics
 
         # If the experiment already exists, load it
         if os.path.isfile(self._experiment_filepath):
             logger = pickle.load(open(self._experiment_filepath, "rb"))
             self.experiment_name = logger.experiment_name
             self.result_log = logger.result_log
+            self.experiment_plan = logger.experiment_plan
+            self.models = logger.models
+            self.data = logger.data
         # Otherwise, init the attributes
         else:
             self.experiment_name = experiment_name
-            self.result_log = pd.DataFrame()
+            self.result_log = pd.DataFrame(columns=["name"])
+            self.experiment_plan = {}
+            self.models = {}
+            self.data = {}
             self._save()
 
     def _save(self):
@@ -37,25 +110,47 @@ class MLLogger:
     def _create_filesystem(self, experiment_name):
         if not os.path.isdir("./ml_experiments/"):
             os.mkdir("./ml_experiments/")
-        if not os.path.isdir("./ml_experiments/experiments/"):
-            os.mkdir("./ml_experiments/experiments/")
+
         if not os.path.isdir("./ml_experiments/models/"):
             os.mkdir("./ml_experiments/models/")
         if not os.path.isdir(f"./ml_experiments/models/{experiment_name}"):
             os.mkdir(f"./ml_experiments/models/{experiment_name}")
 
+        if not os.path.isdir("./ml_experiments/predictions/"):
+            os.mkdir("./ml_experiments/predictions/")
+        if not os.path.isdir(f"./ml_experiments/predictions/{experiment_name}"):
+            os.mkdir(f"./ml_experiments/predictions/{experiment_name}")
+
+        if not os.path.isdir(f"./ml_experiments/reports/"):
+            os.mkdir(f"./ml_experiments/reports/")
+
+        if not os.path.isdir("./ml_experiments/results/"):
+            os.mkdir("./ml_experiments/results/")
+
     def _delete_filesystem(self, experiment_name):
         if os.path.isdir("./ml_experiments/"):
-            if os.path.isdir("./ml_experiments/experiments/"):
-                if os.path.isfile(f"./ml_experiments/experiments/{experiment_name}.pickle"):
-                    os.remove(f"./ml_experiments/experiments/{experiment_name}.pickle")
+
             if os.path.isdir("./ml_experiments/models/"):
                 if os.path.isdir(f"./ml_experiments/models/{experiment_name}"):
                     for f in os.listdir(f"./ml_experiments/models/{experiment_name}"):
                         os.remove(f"./ml_experiments/models/{experiment_name}/{f}")
                     os.rmdir(f"./ml_experiments/models/{experiment_name}")
 
-    def log(self, result_name, model, metrics):
+            if os.path.isdir("./ml_experiments/predictions/"):
+                if os.path.isdir(f"./ml_experiments/predictions/{experiment_name}"):
+                    for f in os.listdir(f"./ml_experiments/predictions/{experiment_name}"):
+                        os.remove(f"./ml_experiments/predictions/{experiment_name}/{f}")
+                    os.rmdir(f"./ml_experiments/predictions/{experiment_name}")
+
+            if os.path.isdir("./ml_experiments/reports/"):
+                if os.path.isfile(f"./ml_experiments/reports/{experiment_name}.html"):
+                    os.remove(f"./ml_experiments/reports/{experiment_name}.html")
+
+            if os.path.isdir("./ml_experiments/results/"):
+                if os.path.isfile(f"./ml_experiments/results/{experiment_name}.pickle"):
+                    os.remove(f"./ml_experiments/results/{experiment_name}.pickle")
+
+    def log(self, result_name, model, predictions, metrics):
         """ Logs a result in the result log
         Adds a row to the result_log dataframe to register the performance of a
         model, and saves the model in pickle format.
@@ -69,24 +164,84 @@ class MLLogger:
         model : trained object with a predict method
             The trained model on which the test was made
         
+        predictions: pd.DataFrame with at least y_true, y_pred columns
+            The predictions of the model
+        
         metrics : dict 
             Dictionary of metrics to log for that trained model. Should contain 
             the defined metrics for that logger.
         """
         log_time = str(datetime.datetime.now())[:19].replace(":", "-")
 
-        metrics["time"] = log_time
-        metrics["name"] = result_name
-        self.result_log = self.result_log.append(metrics, ignore_index=True)
+        results = {"name": result_name}
+        for metric_name, metric_value in metrics.items():
+            results[metric_name] = metric_value
+        results["time"] = log_time
+        self.result_log = self.result_log.append(results, ignore_index=True)
 
         model_location = f"./ml_experiments/models/{self.experiment_name}/{result_name}.pickle"
         pickle.dump(model, open(model_location, "wb"))
+        pred_location = f"./ml_experiments/predictions/{self.experiment_name}/{result_name}.pickle"
+        pickle.dump(predictions, open(pred_location, "wb"))
         self._save()
 
-    def load(self, model_name):
+    def experiment(self, models, data, experiment_plan):
+        """Goes through the experiment plan, retrain the new inputs and
+        regenerates the report.
+        
+        Parameters
+        ----------
+        models: dict of model objects (objects with fit and predict attributes)
+            List all the different models on which you want to train your data
+        data: dict of data
+            List all the different data versions
+        experiment_plan: dict of list of tuples {result name: (model name, data name)}
+            List all the configurations you wish to try, doesn't go over the
+            ones that already have a logged result
+        """
+        for result_name, conf in experiment_plan.items():
+            self.experiment_plan[result_name] = conf
+        for model_name, model in models.items():
+            self.models[model_name] = model
+        for data_name, datum in data.items():
+            self.data[data_name] = datum
+
+        for result_name, conf in experiment_plan.items():
+            if result_name not in self.result_log["name"].values:
+                model, predictions = self._train(self.models[conf[0]], *self.data[conf[1]])
+                metrics = {"model": conf[0], "data": conf[1]}
+                self.log(result_name, model, predictions, metrics)
+
+        self.generate_report()
+
+    def load_model(self, model_name):
         """Loads a model thanks to the given model name. model_name should be in the saved models."""
         return pickle.load(open(f"./ml_experiments/models/{self.experiment_name}/{model_name}.pickle", "rb"))
+
+    def load_predictions(self, result_name):
+        """Loads predictions thanks to the given result name. result_name should be in the saved results."""
+        return pickle.load(open(f"./ml_experiments/predictions/{self.experiment_name}/{result_name}.pickle", "rb"))
 
     def delete(self):
         """Deletes the entire experiment."""
         self._delete_filesystem(self.experiment_name)
+
+    def generate_report(self, get_figures=None, get_metrics=None):
+        if get_figures is None:
+            get_figures = self._get_figures
+        if get_metrics is None:
+            get_metrics = self._get_metrics
+
+        report_contents = []
+        metrics = pd.DataFrame()
+        for result_name in self.result_log["name"].values:
+            predictions = self.load_predictions(result_name)
+            metrics = metrics.append(get_metrics(predictions["y_true"], predictions["y_pred"]), ignore_index=True)
+            for content in get_figures(result_name, predictions["y_true"], predictions["y_pred"]):
+                report_contents.append(content)
+        temp = self.result_log.copy()
+        for col in metrics.columns:
+            temp[col] = metrics[col]
+
+        report_contents = [("title", self.experiment_name), ("pandas", temp)] + report_contents
+        generate_report(f"./ml_experiments/reports/{self.experiment_name}.html", report_contents)
