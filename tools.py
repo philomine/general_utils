@@ -35,6 +35,58 @@ def partition_n_into_k_subsets(n, k):
     return subsets
 
 
+def continuous_to_binary(x, threshold):
+    """Changes values in x from continuous to binary (0 or 1) based on
+    threshold. Values <= to threshold will be 0 and values > to threshold will
+    be 1.
+    
+    Parameters
+    ----------
+    x: array like of continuous values
+        Will be cast to np.array for ease of slice.
+    threshold: numeric
+        Should be comparable to values in x.
+    
+    Returns
+    -------
+    x: np.array
+        The transformed x input.
+
+    Example
+    -------
+    >>> x = [1.2, 0.3, 4.5, -1]
+    >>> continuous_to_binary(x, 1)
+    np.array([1, 0, 1, 0])
+    """
+    res = np.array(x).copy()
+    res[x <= threshold] = 0
+    res[x > threshold] = 1
+    return res
+
+
+def split_X_y(data, target):
+    """Splits data into X and y with y being the target column. Expecting
+    pd.DataFrame.
+    
+    Parameters
+    ----------
+    data: pd.DataFrame
+        Dataframe to split into X and y, should have target in columns.
+    target: string
+        Should be in data.columns.
+    
+    Returns
+    -------
+    X: pd.DataFrame
+        data input without target column.
+    y: pd.Serie
+        the target column taken in data input.
+    """
+    X = data[[col for col in data.columns if col != target]].copy()
+    y = data[target].copy()
+    return X, y
+
+
 def _save_results(results, save_path):
     """ Saves results df to save_path (without being interrupted) """
     try:
@@ -42,10 +94,7 @@ def _save_results(results, save_path):
         print("Saving...")
         results.to_excel(save_path, index=False)
         clear_terminal()
-        print(
-            f"You exited the labeling process. Your labeling has been "
-            + f"saved to {save_path}."
-        )
+        print(f"You exited the labeling process. Your labeling has been " + f"saved to {save_path}.")
     except KeyboardInterrupt:
         _save_results(results, save_path)
 

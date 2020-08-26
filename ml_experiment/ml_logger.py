@@ -73,28 +73,28 @@ class MLLogger:
             dict of metrics.
         """
         self._create_filesystem(experiment_name)
-        self._experiment_filepath = f"./ml_experiments/results/{experiment_name}.pickle"
-        if train_function is None:
-            self._train = _train
-        else:
-            self._train = train_function
-        if get_figures is None:
-            self._get_figures = _get_figures
-        else:
-            self._get_figures = get_figures
-        if get_metrics is None:
-            self._get_metrics = _get_metrics
-        else:
-            self._get_metrics = get_metrics
 
         # If the experiment already exists, load it
-        if os.path.isfile(self._experiment_filepath):
-            logger = pickle.load(open(self._experiment_filepath, "rb"))
+        if os.path.isfile(f"./ml_experiments/results/{experiment_name}.pickle"):
+            logger = pickle.load(open(f"./ml_experiments/results/{experiment_name}.pickle", "rb"))
             self.experiment_name = logger.experiment_name
             self.result_log = logger.result_log
             self.experiment_plan = logger.experiment_plan
             self.models = logger.models
             self.data = logger.data
+
+            if train_function is None:
+                self._train = logger._train
+            else:
+                self._train = train_function
+            if get_figures is None:
+                self._get_figures = logger._get_figures
+            else:
+                self._get_figures = get_figures
+            if get_metrics is None:
+                self._get_metrics = logger._get_metrics
+            else:
+                self._get_metrics = get_metrics
         # Otherwise, init the attributes
         else:
             self.experiment_name = experiment_name
@@ -102,10 +102,24 @@ class MLLogger:
             self.experiment_plan = {}
             self.models = {}
             self.data = {}
+
+            if train_function is None:
+                self._train = _train
+            else:
+                self._train = train_function
+            if get_figures is None:
+                self._get_figures = _get_figures
+            else:
+                self._get_figures = get_figures
+            if get_metrics is None:
+                self._get_metrics = _get_metrics
+            else:
+                self._get_metrics = get_metrics
+
             self._save()
 
     def _save(self):
-        pickle.dump(self, open(self._experiment_filepath, "wb"))
+        pickle.dump(self, open(f"./ml_experiments/results/{self.experiment_name}.pickle", "wb"))
 
     def _create_filesystem(self, experiment_name):
         if not os.path.isdir("./ml_experiments/"):
@@ -195,7 +209,7 @@ class MLLogger:
             List all the different models on which you want to train your data
         data: dict of data
             List all the different data versions
-        experiment_plan: dict of list of tuples {result name: (model name, data name)}
+        experiment_plan: dict of list of tuples {result name: (model name, data name, train kwargs)}
             List all the configurations you wish to try, doesn't go over the
             ones that already have a logged result
         """
@@ -206,10 +220,12 @@ class MLLogger:
         for data_name, datum in data.items():
             self.data[data_name] = datum
 
-        for result_name, conf in experiment_plan.items():
+        for result_name, (model_name, data_name, kwargs) in experiment_plan.items():
             if result_name not in self.result_log["name"].values:
-                model, predictions = self._train(self.models[conf[0]], *self.data[conf[1]])
-                metrics = {"model": conf[0], "data": conf[1]}
+                model = self.models[model_name]
+                X, y = self.data[data_name]
+                model, predictions = self._train(model, X, y, **kwargs)
+                metrics = {"model": model_name, "data": data_name}
                 self.log(result_name, model, predictions, metrics)
 
         self.generate_report()
@@ -226,7 +242,57 @@ class MLLogger:
         """Deletes the entire experiment."""
         self._delete_filesystem(self.experiment_name)
 
-    def generate_report(self, get_figures=None, get_metrics=None):
+    def rename(self, new_name):
+        """Renames the experiment, ie, renaming the files."""
+        old_name = self.experiment_name
+
+        # First, check there is no existing experiment by the new name
+        if os.path.isfile(f"./ml_experiments/results/{new_name}.pickle"):
+            raise ValueError(
+                f"Cannot rename to {new_name}, an experiment with that name "
+                + f"already exists. Please delete it with "
+                + f"MLLogger({new_name}).delete() if you wish."
+            )
+        else:
+            # Delete other potential files
+            MLLogger(new_name).delete()
+
+        if os.path.isdir("./ml_experiments/"):
+
+            if os.path.isdir("./ml_experiments/models/"):
+                if os.path.isdir(f"./ml_experiments/models/{old_name}"):
+                    os.rename(f"./ml_experiments/models/{old_name}", f"./ml_experiments/models/{new_name}")
+
+            if os.path.isdir("./ml_experiments/predictions/"):
+                if os.path.isdir(f"./ml_experiments/predictions/{old_name}"):
+                    os.rename(f"./ml_experiments/predictions/{old_name}", f"./ml_experiments/predictions/{new_name}")
+
+            if os.path.isdir("./ml_experiments/reports/"):
+                if os.path.isfile(f"./ml_experiments/reports/{old_name}.html"):
+                    os.rename(f"./ml_experiments/reports/{old_name}.html", f"./ml_experiments/reports/{new_name}.html")
+
+            if os.path.isdir("./ml_experiments/results/"):
+                if os.path.isfile(f"./ml_experiments/results/{old_name}.pickle"):
+                    os.rename(
+                        f"./ml_experiments/results/{old_name}.pickle", f"./ml_experiments/results/{new_name}.pickle"
+                    )
+        self.experiment_name = new_name
+        self._save()
+        self.generate_report()
+
+    def set_get_figures(self, get_figures):
+        """get_figures should be a function(result_name, y_true, y_pred) -> [(str, object)]"""
+        self._get_figures = get_figures
+        self._save()
+        self.generate_report()
+
+    def set_get_metrics(self, get_metrics):
+        """get_metrics should be a function(y_true, y_pred) -> {"metric_name": metric_value}"""
+        self._get_metrics = get_metrics
+        self._save()
+        self.generate_report()
+
+    def generate_report(self, get_figures=None, get_metrics=None, best_result=None):
         if get_figures is None:
             get_figures = self._get_figures
         if get_metrics is None:
@@ -237,11 +303,35 @@ class MLLogger:
         for result_name in self.result_log["name"].values:
             predictions = self.load_predictions(result_name)
             metrics = metrics.append(get_metrics(predictions["y_true"], predictions["y_pred"]), ignore_index=True)
-            for content in get_figures(result_name, predictions["y_true"], predictions["y_pred"]):
-                report_contents.append(content)
+            if best_result is None:
+                for content in get_figures(result_name, predictions["y_true"], predictions["y_pred"]):
+                    report_contents.append(content)
+            else:
+                if result_name == best_result:
+                    for content in get_figures(result_name, predictions["y_true"], predictions["y_pred"]):
+                        report_contents.append(content)
         temp = self.result_log.copy()
         for col in metrics.columns:
             temp[col] = metrics[col]
 
         report_contents = [("title", self.experiment_name), ("pandas", temp)] + report_contents
         generate_report(f"./ml_experiments/reports/{self.experiment_name}.html", report_contents)
+
+    def retrain(self, subset=None, exclude=None):
+        """exclude is ignore if subset is not None."""
+        results_to_retrain = self.result_log["name"].values
+        if subset is None:
+            if exclude is not None:
+                results_to_retrain = [res for res in results_to_retrain if res not in exclude]
+        else:
+            results_to_retrain = subset
+
+        for result_name, (model_name, data_name, kwargs) in self.experiment_plan.items():
+            if result_name in results_to_retrain:
+                model = self.models[model_name]
+                X, y = self.data[data_name]
+                model, predictions = self._train(model, X, y, **kwargs)
+                metrics = {"model": model_name, "data": data_name}
+                self.log(result_name, model, predictions, metrics)
+
+        self.generate_report()
