@@ -64,7 +64,7 @@ def continuous_to_binary(x, threshold):
     return res
 
 
-def split_X_y(data, target):
+def split_X_y(data, target, to_numpy=True):
     """Splits data into X and y with y being the target column. Expecting
     pd.DataFrame.
     
@@ -84,6 +84,9 @@ def split_X_y(data, target):
     """
     X = data[[col for col in data.columns if col != target]].copy()
     y = data[target].copy()
+    if to_numpy:
+        X = X.to_numpy()
+        y = y.to_numpy().flatten()
     return X, y
 
 
