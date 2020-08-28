@@ -95,6 +95,8 @@ class MLLogger:
                 self._get_metrics = logger._get_metrics
             else:
                 self._get_metrics = get_metrics
+
+            self._save()
         # Otherwise, init the attributes
         else:
             self.experiment_name = experiment_name
@@ -185,6 +187,9 @@ class MLLogger:
             Dictionary of metrics to log for that trained model. Should contain 
             the defined metrics for that logger.
         """
+        if result_name in self.result_log["name"]:
+            self.result_log = self.result_log[self.result_log["name"] != result_name]
+
         log_time = str(datetime.datetime.now())[:19].replace(":", "-")
 
         results = {"name": result_name}
@@ -228,6 +233,7 @@ class MLLogger:
                 metrics = {"model": model_name, "data": data_name}
                 self.log(result_name, model, predictions, metrics)
 
+        self._save()
         self.generate_report()
 
     def load_model(self, model_name):
