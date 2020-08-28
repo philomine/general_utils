@@ -64,7 +64,7 @@ def continuous_to_binary(x, threshold):
     return res
 
 
-def split_X_y(data, target, to_numpy=True):
+def split_X_y(data, target, to_numpy=True, return_feature_names=False):
     """Splits data into X and y with y being the target column. Expecting
     pd.DataFrame.
     
@@ -74,20 +74,37 @@ def split_X_y(data, target, to_numpy=True):
         Dataframe to split into X and y, should have target in columns.
     target: string
         Should be in data.columns.
+    to_numpy: bool (optional, default: True)
+        Wheter to turn the results to numpy arrays.
+    return_feature_names: bool (optional, default: False)
+        Wheter to return X, y, feature_names or simply X, y. Useful when
+        to_numpy=True.
     
     Returns
     -------
     X: pd.DataFrame
         data input without target column.
     y: pd.Serie
-        the target column taken in data input.
+        The target column taken in data input.
+    feature_names: list of str (optional, depends on the return_feature_names param)
+        The names of the features in X.
     """
     X = data[[col for col in data.columns if col != target]].copy()
     y = data[target].copy()
+
+    if return_feature_names:
+        feature_names = X.columns.copy()
+
     if to_numpy:
         X = X.to_numpy()
         y = y.to_numpy().flatten()
-    return X, y
+
+    if return_feature_names:
+        res = X, y, feature_names
+    else:
+        res = X, y
+
+    return res
 
 
 def _save_results(results, save_path):
