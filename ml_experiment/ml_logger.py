@@ -51,7 +51,7 @@ def _get_metrics(y_true, y_pred):
 
 
 class MLLogger:
-    def __init__(self, experiment_name, train_function=None, get_figures=None, get_metrics=None):
+    def __init__(self, experiment_name):
         """ Create a logger for an experiment. The experiment name will define
         your experiment. To load it later, you'll just have to use the same
         name when initialising the logger.
@@ -60,17 +60,6 @@ class MLLogger:
         ----------
         experiment_name : string
             The name of the ML experiment.
-        train_function: function returning (model, predictions)
-            model is an object with fit and predict attributes and predictions
-            is a pd.DataFrame with y_true and y_pred columns, and also
-            identification if you wish.
-        get_figures: function returning a list of tuples for plotly_reporter
-            Refer to plotly reporter module for expected format. This is a list
-            of figures reporting the performance of a model. Should accept as
-            parameters model_name, y_true, y_pred.
-        get_metrics: function(y_true, y_pred) -> dict(metric_name: metric_value)
-            Function which takes into parameter y_true, y_pred and returns a
-            dict of metrics.
         """
         self._create_filesystem(experiment_name)
 
@@ -80,44 +69,14 @@ class MLLogger:
             self.experiment_name = logger.experiment_name
             self.result_log = logger.result_log
             self.experiment_plan = logger.experiment_plan
-            self.models = logger.models
-            self.data = logger.data
-
-            if train_function is None:
-                self._train = logger._train
-            else:
-                self._train = train_function
-            if get_figures is None:
-                self._get_figures = logger._get_figures
-            else:
-                self._get_figures = get_figures
-            if get_metrics is None:
-                self._get_metrics = logger._get_metrics
-            else:
-                self._get_metrics = get_metrics
-
+            self.report = logger.report
             self._save()
         # Otherwise, init the attributes
         else:
             self.experiment_name = experiment_name
-            self.result_log = pd.DataFrame(columns=["name"])
+            self.result_log = pd.DataFrame(columns=["name", "time", "model", "data"])
             self.experiment_plan = {}
-            self.models = {}
-            self.data = {}
-
-            if train_function is None:
-                self._train = _train
-            else:
-                self._train = train_function
-            if get_figures is None:
-                self._get_figures = _get_figures
-            else:
-                self._get_figures = get_figures
-            if get_metrics is None:
-                self._get_metrics = _get_metrics
-            else:
-                self._get_metrics = get_metrics
-
+            self.report = [("title", experiment_name)]
             self._save()
 
     def _save(self):
@@ -192,17 +151,55 @@ class MLLogger:
 
         log_time = str(datetime.datetime.now())[:19].replace(":", "-")
 
-        results = {"name": result_name}
+        log = {"name": result_name}
         for metric_name, metric_value in metrics.items():
-            results[metric_name] = metric_value
-        results["time"] = log_time
-        self.result_log = self.result_log.append(results, ignore_index=True)
+            log[metric_name] = metric_value
+        log["time"] = log_time
+        self.result_log = self.result_log.append(log, ignore_index=True)
+        self.report[1] = ("pandas", self.result_log)
 
         model_location = f"./ml_experiments/models/{self.experiment_name}/{result_name}.pickle"
         pickle.dump(model, open(model_location, "wb"))
         pred_location = f"./ml_experiments/predictions/{self.experiment_name}/{result_name}.pickle"
         pickle.dump(predictions, open(pred_location, "wb"))
         self._save()
+
+    def set_experiment_plan(self, experiment_plan):
+        """Adds entries to the experiment plan. The experiment plan is a dict
+        of models to train. New entries in the experiment plan will be added.
+        Entries already existing will be replaced.
+        
+        Parameters
+        ----------
+        experiment_plan: dict of list
+            Expecting a dict in the shape
+            {"entry_name": ["model_name", "data_name", "train_name", model_kwargs]}
+        """
+        for entry_name, conf in experiment_plan.items():
+            self.experiment_plan[entry_name] = conf
+        self._save()
+
+    def get_experiment_plan(self):
+        return self.experiment_plan.copy()
+
+    def train(models, data, train_functions, include=[], exclude=[]):
+        """if a name is in include and exclude, it is included."""
+        models_to_train = []
+        for name in self.experiment_plan:
+            if name not in exclude and (not os.path.isfile(f"./ml_experiment/models/{name}.pickle")):
+                models_to_train.append(name)
+        models_to_train = np.unique(models_to_train + list(include))
+
+        for name in models_to_train:
+            conf = self.experiment_plan[name]
+            model = models[conf[0]]
+            X, y, cv_index = data[conf[1]]
+            train_function = train_functions[conf[2]]
+            model_kwargs = conf[3]
+
+            model, predictions = train_function(model, X, y, cv_index, model_kwargs=model_kwargs)
+            metrics = {"model": conf[0], "data": conf[1]}
+            self.log(result_name, model, predictions, metrics)
 
     def experiment(self, models, data, experiment_plan):
         """Goes through the experiment plan, retrain the new inputs and
@@ -283,20 +280,15 @@ class MLLogger:
                         f"./ml_experiments/results/{old_name}.pickle", f"./ml_experiments/results/{new_name}.pickle"
                     )
         self.experiment_name = new_name
+        self.report[0] = ("title", self.experiment_name)
         self._save()
-        self.generate_report()
 
-    def set_get_figures(self, get_figures):
-        """get_figures should be a function(result_name, y_true, y_pred) -> [(str, object)]"""
-        self._get_figures = get_figures
-        self._save()
-        self.generate_report()
+    def update_report(get_figures=None, get_metrics=None, include=None, exclude=None):
+        report_contents = self.reports.copy()
 
-    def set_get_metrics(self, get_metrics):
-        """get_metrics should be a function(y_true, y_pred) -> {"metric_name": metric_value}"""
-        self._get_metrics = get_metrics
-        self._save()
-        self.generate_report()
+        if get_metrics is not None:
+            pass
+        generate_report(f"./ml_experiments/reports/{self.experiment_name}.html", self.report)
 
     def generate_report(self, get_figures=None, get_metrics=None, best_result=None):
         if get_figures is None:
@@ -318,7 +310,7 @@ class MLLogger:
                         report_contents.append(content)
         temp = self.result_log.copy()
         for col in metrics.columns:
-            temp[col] = metrics[col]
+            temp[col] = metrics[col].values
 
         report_contents = [("title", self.experiment_name), ("pandas", temp)] + report_contents
         generate_report(f"./ml_experiments/reports/{self.experiment_name}.html", report_contents)
