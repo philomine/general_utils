@@ -95,7 +95,7 @@ class TimeBasedCV(object):
             for split_date in self.split_dates:
                 start_train = split_date - eval(f"relativedelta({self.freq}=self.train_period)")
                 end_train = start_train + eval(f"relativedelta({self.freq}=self.train_period)")
-                start_test = end_train + eval(f"relativedelta({self.freq}=gap)")
+                start_test = end_train + eval(f"relativedelta({self.freq}=self.gap)")
                 end_test = start_test + eval(f"relativedelta({self.freq}=self.test_period)")
                 periods.append((start_train, end_train, start_test, end_test))
         else:
@@ -111,6 +111,7 @@ class TimeBasedCV(object):
                 start_train = end_train - eval(f"relativedelta({self.freq}=self.train_period)")
                 periods.append((start_train, end_train, start_test, end_test))
 
+            periods = periods[::-1]
             if self.n_splits is not None:
                 if self.method == "last":
                     periods = periods[-self.n_splits :]
@@ -131,7 +132,7 @@ class TimeBasedCV(object):
 
             if self.verbose:
                 print(
-                    f"Train: {start_train}-{end_train}, Test: {start_test}-{end_test} "
+                    f"Train: {start_train} - {end_train}, Test: {start_test} - {end_test} "
                     + f"# {np.sum(train_indices)}, {np.sum(test_indices)}"
                 )
 
