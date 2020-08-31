@@ -52,7 +52,7 @@ def _get_metrics(y_true, y_pred):
 
 class MLLogger:
     def __init__(self, experiment_name):
-        """ Create a logger for an experiment. The experiment name will define
+        """Create a logger for an experiment. The experiment name will define
         your experiment. To load it later, you'll just have to use the same
         name when initialising the logger.
 
@@ -69,17 +69,16 @@ class MLLogger:
             self.experiment_name = logger.experiment_name
             self.result_log = logger.result_log
             self.experiment_plan = logger.experiment_plan
-            self.report = logger.report
             self._save()
         # Otherwise, init the attributes
         else:
             self.experiment_name = experiment_name
             self.result_log = pd.DataFrame(columns=["name", "time", "model", "data"])
             self.experiment_plan = {}
-            self.report = [("title", experiment_name)]
             self._save()
 
     def _save(self):
+        self.generate_report()
         pickle.dump(self, open(f"./ml_experiments/results/{self.experiment_name}.pickle", "wb"))
 
     def _create_filesystem(self, experiment_name):
@@ -156,7 +155,6 @@ class MLLogger:
             log[metric_name] = metric_value
         log["time"] = log_time
         self.result_log = self.result_log.append(log, ignore_index=True)
-        self.report[1] = ("pandas", self.result_log)
 
         model_location = f"./ml_experiments/models/{self.experiment_name}/{result_name}.pickle"
         pickle.dump(model, open(model_location, "wb"))
@@ -182,12 +180,13 @@ class MLLogger:
     def get_experiment_plan(self):
         return self.experiment_plan.copy()
 
-    def train(models, data, train_functions, include=[], exclude=[]):
+    def train(self, models, data, train_functions, include=[], exclude=[]):
         """if a name is in include and exclude, it is included."""
         models_to_train = []
         for name in self.experiment_plan:
-            if name not in exclude and (not os.path.isfile(f"./ml_experiment/models/{name}.pickle")):
+            if not os.path.isfile(f"./ml_experiment/models/{name}.pickle"):
                 models_to_train.append(name)
+        models_to_train = [model for model in models_to_train is model not in exclude]
         models_to_train = np.unique(models_to_train + list(include))
 
         for name in models_to_train:
@@ -199,39 +198,7 @@ class MLLogger:
 
             model, predictions = train_function(model, X, y, cv_index, model_kwargs=model_kwargs)
             metrics = {"model": conf[0], "data": conf[1]}
-            self.log(result_name, model, predictions, metrics)
-
-    def experiment(self, models, data, experiment_plan):
-        """Goes through the experiment plan, retrain the new inputs and
-        regenerates the report.
-        
-        Parameters
-        ----------
-        models: dict of model objects (objects with fit and predict attributes)
-            List all the different models on which you want to train your data
-        data: dict of data
-            List all the different data versions
-        experiment_plan: dict of list of tuples {result name: (model name, data name, train kwargs)}
-            List all the configurations you wish to try, doesn't go over the
-            ones that already have a logged result
-        """
-        for result_name, conf in experiment_plan.items():
-            self.experiment_plan[result_name] = conf
-        for model_name, model in models.items():
-            self.models[model_name] = model
-        for data_name, datum in data.items():
-            self.data[data_name] = datum
-
-        for result_name, (model_name, data_name, kwargs) in experiment_plan.items():
-            if result_name not in self.result_log["name"].values:
-                model = self.models[model_name]
-                X, y = self.data[data_name]
-                model, predictions = self._train(model, X, y, **kwargs)
-                metrics = {"model": model_name, "data": data_name}
-                self.log(result_name, model, predictions, metrics)
-
-        self._save()
-        self.generate_report()
+            self.log(name, model, predictions, metrics)
 
     def load_model(self, model_name):
         """Loads a model thanks to the given model name. model_name should be in the saved models."""
@@ -280,56 +247,30 @@ class MLLogger:
                         f"./ml_experiments/results/{old_name}.pickle", f"./ml_experiments/results/{new_name}.pickle"
                     )
         self.experiment_name = new_name
-        self.report[0] = ("title", self.experiment_name)
         self._save()
 
-    def update_report(get_figures=None, get_metrics=None, include=None, exclude=None):
-        report_contents = self.reports.copy()
+    def generate_report(self, get_figures=None, get_metrics=None, model_name=None):
+        report_contents = [("title", self.experiment_name)]
 
+        result_log = self.result_log.copy()
         if get_metrics is not None:
-            pass
-        generate_report(f"./ml_experiments/reports/{self.experiment_name}.html", self.report)
+            metrics = pd.DataFrame()
+            for result_name in self.result_log["name"]:
+                predictions = self.load_predictions(result_name)
+                metrics = metrics.append(get_metrics(predictions["y_true"], predictions["y_pred"]), ignore_index=True)
+            for col in metrics.columns:
+                result_log[col] = metrics[col].values
+        report_contents.append(("pandas", result_log))
 
-    def generate_report(self, get_figures=None, get_metrics=None, best_result=None):
-        if get_figures is None:
-            get_figures = self._get_figures
-        if get_metrics is None:
-            get_metrics = self._get_metrics
-
-        report_contents = []
-        metrics = pd.DataFrame()
-        for result_name in self.result_log["name"].values:
-            predictions = self.load_predictions(result_name)
-            metrics = metrics.append(get_metrics(predictions["y_true"], predictions["y_pred"]), ignore_index=True)
-            if best_result is None:
-                for content in get_figures(result_name, predictions["y_true"], predictions["y_pred"]):
-                    report_contents.append(content)
+        if get_figures is not None:
+            if model_name is None:
+                for result_name in self.result_log["name"]:
+                    predictions = self.load_predictions(result_name)
+                    figures = get_figures(result_name, predictions["y_true"], predictions["y_pred"])
+                    report_contents += figures
             else:
-                if result_name == best_result:
-                    for content in get_figures(result_name, predictions["y_true"], predictions["y_pred"]):
-                        report_contents.append(content)
-        temp = self.result_log.copy()
-        for col in metrics.columns:
-            temp[col] = metrics[col].values
+                predictions = self.load_predictions(model_name)
+                figures = get_figures(model_name, predictions["y_true"], predictions["y_pred"])
+                report_contents += figures
 
-        report_contents = [("title", self.experiment_name), ("pandas", temp)] + report_contents
         generate_report(f"./ml_experiments/reports/{self.experiment_name}.html", report_contents)
-
-    def retrain(self, subset=None, exclude=None):
-        """exclude is ignore if subset is not None."""
-        results_to_retrain = self.result_log["name"].values
-        if subset is None:
-            if exclude is not None:
-                results_to_retrain = [res for res in results_to_retrain if res not in exclude]
-        else:
-            results_to_retrain = subset
-
-        for result_name, (model_name, data_name, kwargs) in self.experiment_plan.items():
-            if result_name in results_to_retrain:
-                model = self.models[model_name]
-                X, y = self.data[data_name]
-                model, predictions = self._train(model, X, y, **kwargs)
-                metrics = {"model": model_name, "data": data_name}
-                self.log(result_name, model, predictions, metrics)
-
-        self.generate_report()
