@@ -68,12 +68,14 @@ class MLLogger:
             logger = pickle.load(open(f"./ml_experiments/results/{experiment_name}.pickle", "rb"))
             self.experiment_name = logger.experiment_name
             self.result_log = logger.result_log
+            self.kwargs = logger.kwargs
             self.experiment_plan = logger.experiment_plan
             self._save()
         # Otherwise, init the attributes
         else:
             self.experiment_name = experiment_name
             self.result_log = pd.DataFrame(columns=["name", "time", "model", "data"])
+            self.kwargs = pd.DataFrame(columns=["name"])
             self.experiment_plan = {}
             self._save()
 
@@ -124,7 +126,7 @@ class MLLogger:
                 if os.path.isfile(f"./ml_experiments/results/{experiment_name}.pickle"):
                     os.remove(f"./ml_experiments/results/{experiment_name}.pickle")
 
-    def log(self, result_name, model, predictions, metrics):
+    def log(self, result_name, model, model_kwargs, predictions, metrics):
         """ Logs a result in the result log
         Adds a row to the result_log dataframe to register the performance of a
         model, and saves the model in pickle format.
@@ -147,14 +149,19 @@ class MLLogger:
         """
         if result_name in self.result_log["name"]:
             self.result_log = self.result_log[self.result_log["name"] != result_name]
+        if result_name in self.kwargs["name"]:
+            self.kwargs = self.kwargs[self.kwargs["name"] != result_name]
 
         log_time = str(datetime.datetime.now())[:19].replace(":", "-")
-
         log = {"name": result_name}
         for metric_name, metric_value in metrics.items():
             log[metric_name] = metric_value
         log["time"] = log_time
         self.result_log = self.result_log.append(log, ignore_index=True)
+
+        model_kwargs = model_kwargs.copy()
+        model_kwargs["name"] = result_name
+        self.kwargs = self.kwargs.append(model_kwargs, ignore_index=True)
 
         model_location = f"./ml_experiments/models/{self.experiment_name}/{result_name}.pickle"
         pickle.dump(model, open(model_location, "wb"))
@@ -180,25 +187,25 @@ class MLLogger:
     def get_experiment_plan(self):
         return self.experiment_plan.copy()
 
-    def train(self, models, data, train_functions, include=[], exclude=[]):
+    def train(self, models={}, data={}, train_functions={}, include=[], exclude=[]):
         """if a name is in include and exclude, it is included."""
         models_to_train = []
         for name in self.experiment_plan:
-            if not os.path.isfile(f"./ml_experiment/models/{name}.pickle"):
+            if not os.path.isfile(f"./ml_experiments/models/{self.experiment_name}/{name}.pickle"):
                 models_to_train.append(name)
-        models_to_train = [model for model in models_to_train is model not in exclude]
+        models_to_train = [model for model in models_to_train if model not in exclude]
         models_to_train = np.unique(models_to_train + list(include))
 
         for name in models_to_train:
+            print(f"Training {name}...")
             conf = self.experiment_plan[name]
-            model = models[conf[0]]
+            model, model_kwargs = models[conf[0]]
             X, y, cv_index = data[conf[1]]
             train_function = train_functions[conf[2]]
-            model_kwargs = conf[3]
 
-            model, predictions = train_function(model, X, y, cv_index, model_kwargs=model_kwargs)
+            model, predictions = train_function(model, model_kwargs, X, y, cv_index)
             metrics = {"model": conf[0], "data": conf[1]}
-            self.log(name, model, predictions, metrics)
+            self.log(name, model, model_kwargs, predictions, metrics)
 
     def load_model(self, model_name):
         """Loads a model thanks to the given model name. model_name should be in the saved models."""
