@@ -75,8 +75,10 @@ class MLLogger:
         # Otherwise, init the attributes
         else:
             self.experiment_name = experiment_name
-            self.result_log = pd.DataFrame(columns=["name", "time", "model", "data"])
-            self.kwargs = pd.DataFrame(columns=["name"])
+            self.result_log = pd.DataFrame(
+                columns=["name", "time", "model", "data", "train function", "score"]
+            ).set_index("name")
+            self.kwargs = pd.DataFrame(columns=["name"]).set_index("name")
             self.experiment_plan = {}
             self.feature_importances = pd.DataFrame(columns=["name"])
             self._save()
@@ -149,27 +151,25 @@ class MLLogger:
             Dictionary of metrics to log for that trained model. Should contain 
             the defined metrics for that logger.
         """
-        if result_name in self.result_log["name"]:
-            self.result_log = self.result_log[self.result_log["name"] != result_name]
-        if result_name in self.kwargs["name"]:
-            self.kwargs = self.kwargs[self.kwargs["name"] != result_name]
-        if result_name in self.feature_importances["name"]:
-            self.feature_importances = self.feature_importances[self.feature_importances["name"] != result_name]
+        if result_name in self.result_log.index:
+            self.result_log = self.result_log.drop(result_name)
+        if result_name in self.kwargs.index:
+            self.kwargs = self.kwargs.drop(result_name)
+        if result_name in self.feature_importances.index:
+            self.feature_importances = self.feature_importances.drop(result_name)
 
-        log_time = str(datetime.datetime.now())[:19].replace(":", "-")
-        log = {"name": result_name}
-        for metric_name, metric_value in metrics.items():
-            log[metric_name] = metric_value
-        log["time"] = log_time
-        self.result_log = self.result_log.append(log, ignore_index=True)
+        log = metrics.copy()
+        log["time"] = str(datetime.datetime.now())[:19].replace(":", "-")
+        log = pd.Series(log, name=result_name)
+        self.result_log = self.result_log.append(log)
 
         model_kwargs = model_kwargs.copy()
-        model_kwargs["name"] = result_name
-        self.kwargs = self.kwargs.append(model_kwargs, ignore_index=True)
+        model_kwargs = pd.Series(model_kwargs, name=result_name)
+        self.kwargs = self.kwargs.append(model_kwargs)
 
         feature_importances = feature_importances.copy()
-        feature_importances["name"] = result_name
-        self.feature_importances = self.feature_importances.append(feature_importances, ignore_index=True)
+        feature_importances = pd.Series(feature_importances, name=result_name)
+        self.feature_importances = self.feature_importances.append(feature_importances)
 
         model_location = f"./ml_experiments/models/{self.experiment_name}/{result_name}.pickle"
         pickle.dump(model, open(model_location, "wb"))
@@ -195,6 +195,12 @@ class MLLogger:
     def get_experiment_plan(self):
         return self.experiment_plan.copy()
 
+    def get_feature_importances(self, result_name=None):
+        if result_name is None:
+            return self.feature_importances.copy()
+        else:
+            return self.feature_importances.copy().loc[result_name].dropna()
+
     def train(self, models={}, data={}, train_functions={}, include=[], exclude=[]):
         """if a name is in include and exclude, it is included."""
         models_to_train = []
@@ -207,12 +213,16 @@ class MLLogger:
         for name in models_to_train:
             print(f"Training {name}...")
             conf = self.experiment_plan[name]
-            model, model_kwargs = models[conf[0]]
+            model = models[conf[0]]
             X, y, cv_index = data[conf[1]]
             train_function = train_functions[conf[2]]
+            model_kwargs = conf[3]
+            features = conf[4]
 
-            model, predictions, feature_importances = train_function(model, model_kwargs, X, y, cv_index)
-            metrics = {"model": conf[0], "data": conf[1]}
+            model, score, predictions, feature_importances = train_function(
+                model, model_kwargs, X, y, cv_index, features
+            )
+            metrics = {"model": conf[0], "data": conf[1], "train function": conf[2], "score": score}
             self.log(name, model, model_kwargs, predictions, feature_importances, metrics)
 
     def load_model(self, model_name):
@@ -264,30 +274,31 @@ class MLLogger:
         self.experiment_name = new_name
         self._save()
 
-    def generate_report(self, get_figures=None, get_metrics=None, model_name=None):
+    def generate_report(self, get_figures=None, get_metrics=None, plotting_plan=None):
         report_contents = [("title", self.experiment_name)]
 
         result_log = self.result_log.copy()
         if get_metrics is not None:
             metrics = pd.DataFrame()
-            for result_name in self.result_log["name"]:
+            for result_name in self.result_log.index:
                 predictions = self.load_predictions(result_name)
-                metrics = metrics.append(get_metrics(predictions["y_true"], predictions["y_pred"]), ignore_index=True)
+                metrics = metrics.append(
+                    pd.Series(get_metrics(predictions["y_true"], predictions["y_pred"]), name=result_name)
+                )
             for col in metrics.columns:
-                result_log[col] = metrics[col].values
+                result_log[col] = metrics[col]
         report_contents.append(("pandas", result_log))
         report_contents.append(("pandas", self.kwargs.copy()))
-        report_contents.append(("pandas", self.feature_importances.copy()))
 
-        if get_figures is not None:
-            if model_name is None:
-                for result_name in self.result_log["name"]:
-                    predictions = self.load_predictions(result_name)
-                    figures = get_figures(result_name, predictions["y_true"], predictions["y_pred"])
-                    report_contents += figures
-            else:
-                predictions = self.load_predictions(model_name)
-                figures = get_figures(model_name, predictions["y_true"], predictions["y_pred"])
+        if plotting_plan is not None:
+            for result_name, get_figures in plotting_plan.items():
+                predictions = self.load_predictions(result_name)
+                figures = get_figures(result_name, predictions["y_true"], predictions["y_pred"])
+                report_contents += figures
+        elif get_figures is not None:
+            for result_name in self.result_log.index:
+                predictions = self.load_predictions(result_name)
+                figures = get_figures(result_name, predictions["y_true"], predictions["y_pred"])
                 report_contents += figures
 
         generate_report(f"./ml_experiments/reports/{self.experiment_name}.html", report_contents)
