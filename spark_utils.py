@@ -126,11 +126,18 @@ def spark_drop_empty_columns(spark_df):
     return spark_df
 
 
-def spark_union(df1, df2):
-    new_columns_1 = [col for col in df2.columns if col not in df1.columns]
-    new_columns_2 = [col for col in df1.columns if col not in df2.columns]
-    for column in new_columns_1:
-        df1 = df1.withColumn(column, F.lit(None))
-    for column in new_columns_2:
-        df2 = df2.withColumn(column, F.lit(None))
-    return df1.unionByName(df2)
+def spark_union(dataframes):
+    """Unions dataframes in dataframes list."""
+    table = dataframes[0]
+    for df in dataframes[1:]:
+        df1 = table
+        df2 = df
+
+        new_columns_1 = [col for col in df2.columns if col not in df1.columns]
+        new_columns_2 = [col for col in df1.columns if col not in df2.columns]
+        for column in new_columns_1:
+            df1 = df1.withColumn(column, F.lit(None))
+        for column in new_columns_2:
+            df2 = df2.withColumn(column, F.lit(None))
+        table = df1.unionByName(df2)
+    return table
