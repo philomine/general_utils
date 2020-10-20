@@ -141,3 +141,17 @@ def spark_union(dataframes):
             df2 = df2.withColumn(column, F.lit(None))
         table = df1.unionByName(df2)
     return table
+
+
+def spark_any(spark_df, new_col, columns):
+    spark_df = spark_df.withColumn(new_col, F.lit(False))
+    for col in columns:
+        spark_df = spark_df.withColumn(new_col, F.when(F.col(new_col) | F.col(col), True).otherwise(F.lit(False)))
+    return spark_df
+
+
+def spark_all(spark_df, new_col, columns):
+    spark_df = spark_df.withColumn(new_col, F.lit(True))
+    for col in columns:
+        spark_df = spark_df.withColumn(new_col, F.when(F.col(new_col) & F.col(col), True).otherwise(F.lit(False)))
+    return spark_df
