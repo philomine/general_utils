@@ -1,27 +1,27 @@
 import numpy as np
 import pandas as pd
 import pyspark
-import pyspark.sql.functions as F
+import pyspark.sql.functions as f
 
 
 def replace(self, old_value, new_value, columns=None):
-    """ Replaces a value by another in a spark df. Set columns to a list of 
+    """Replaces a value by another in a spark df. Set columns to a list of
     columns to replace only in those columns. Careful: the type of the columns
-    will be kept, so if you want to replace 1 with "foo", you should cast the 
+    will be kept, so if you want to replace 1 with "foo", you should cast the
     corresponding column to StringType() beforehand.
 
     Parameters
     ----------
     old_value: string, number or None
-        The value to replace, set to None to replace null values (equivalent 
+        The value to replace, set to None to replace null values (equivalent
         to nafill)
     new_value: string, number or None
         The value with which you will replace
     columns: array-like of string (optional, default: None)
-        If you don't want to replace the values everywhere, give a list of 
-        columns in which you want to replace. If set to None, the value is 
+        If you don't want to replace the values everywhere, give a list of
+        columns in which you want to replace. If set to None, the value is
         looked for and replaced in every column.
-    
+
     Returns
     -------
     spark_df: pyspark dataframe
@@ -44,17 +44,17 @@ def replace(self, old_value, new_value, columns=None):
 
 
 def replace_in_col(self, column_name, old_value, new_value):
-    """ Replaces a value with another in a given column of a spark df. Careful: 
-    the type of the columns will be kept, so if you want to replace 1 with 
-    "foo", you should cast the corresponding column to StringType() beforehand. 
-    
+    """Replaces a value with another in a given column of a spark df. Careful:
+    the type of the columns will be kept, so if you want to replace 1 with
+    "foo", you should cast the corresponding column to StringType() beforehand.
+
     Parameters
     ----------
     column_name: string
-        The name of the column in which you want to replace the value, should 
+        The name of the column in which you want to replace the value, should
         be in self.columns
     old_value: string, number or None
-        The value to replace, set to None to replace null values (equivalent 
+        The value to replace, set to None to replace null values (equivalent
         to nafill)
     new_value: string, number or None
         The value with which you will replace
@@ -69,12 +69,12 @@ def replace_in_col(self, column_name, old_value, new_value):
     if old_value is None:
         spark_df = spark_df.withColumn(
             column_name,
-            F.when(F.col(column_name).isNull(), F.lit(new_value)).otherwise(F.col(column_name)).cast(dtype),
+            f.when(f.col(column_name).isNull(), f.lit(new_value)).otherwise(f.col(column_name)).cast(dtype),
         )
     else:
         spark_df = spark_df.withColumn(
             column_name,
-            F.when(F.col(column_name) == old_value, F.lit(new_value)).otherwise(F.col(column_name)).cast(dtype),
+            f.when(f.col(column_name) == old_value, f.lit(new_value)).otherwise(f.col(column_name)).cast(dtype),
         )
     return spark_df
 
