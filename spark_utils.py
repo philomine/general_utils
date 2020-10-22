@@ -155,3 +155,36 @@ def spark_all(spark_df, new_col, columns):
     for col in columns:
         spark_df = spark_df.withColumn(new_col, F.when(F.col(new_col) & F.col(col), True).otherwise(F.lit(False)))
     return spark_df
+
+
+def one_row_per_day(
+    df, id_cols, start_date_col, end_date_col, include_start_date=True, include_end_date=True, return_start_end=False
+):
+    """Takes in a pyspark dataframe with id_cols and start and end dates, and
+    creates one row per day per period.
+    """
+    if start_date_col == "date":
+        df = df.withColumnRenamed(start_date_col, "start_date")
+        start_date_col = "start_date"
+    if end_date_col == "date":
+        df = df.withColumnRenamed(end_date_col, "end_date")
+        end_date_col = "end_date"
+
+    temp = (
+        df.select(*id_cols, start_date_col, end_date_col)
+        .drop_duplicates()
+        .withColumn("duration", f.datediff(end_date_col, start_date_col))
+        .withColumn("duration_in_comma", f.expr("split(repeat(',', duration), ',')"))
+        .select("*", f.posexplode("duration_in_comma").alias("date", "val"))
+        .drop("duration_in_comma", "val", "duration")
+        .withColumn("date", f.expr(f"date_add({start_date_col}, date)"))
+    )
+
+    if not include_start_date:
+        temp = temp.filter(f.col("date") != f.col(start_date_col))
+    if not include_end_date:
+        temp = temp.filter(f.col("date") != f.col(end_date_col))
+    if not return_start_end:
+        temp = temp.drop(start_date_col, end_date_col)
+
+    return temp
