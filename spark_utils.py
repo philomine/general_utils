@@ -165,7 +165,7 @@ def one_row_per_day(
 
     # Rows should have every value and should be identifiable by id_cols + start_date_col
     df = df.select(*id_cols, start_date_col, end_date_col).dropna()
-    df = df.groupby(id_cols + [start_date_col]).agg(f.max(f.col(end_date_col)))
+    df = df.groupby(id_cols + [start_date_col]).agg(f.max(f.col(end_date_col)).alias(end_date_col))
 
     temp = (
         df.select(*id_cols, start_date_col, end_date_col)
