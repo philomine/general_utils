@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
+import pyspark.sql.types as t
 
 
 def spark_clean_df(pd_df):
@@ -185,3 +186,28 @@ def one_row_per_day(
         temp = temp.drop(start_date_col, end_date_col)
 
     return temp
+
+
+def spark_schema_from_dict(schema):
+    spark_types = {
+        "string": t.StringType(),
+        "long": t.LongType(),
+        "datetime": t.TimestampType(),
+        "timestamp": t.TimestampType(),
+        "double": t.DoubleType(),
+        "bool": t.BooleanType(),
+        "boolean": t.BooleanType(),
+        "date": t.DateType(),
+        "float": t.FloatType(),
+        "int": t.IntegerType(),
+        "integer": t.IntegerType(),
+        "decimal(38,18)": t.DecimalType(38, 18),
+    }
+
+    return_schema = []
+    for field, field_type in schema.items():
+        field_type = spark_types[field_type]
+        return_schema.append(t.StructField(field, field_type, True))
+    return_schema = t.StructType(return_schema)
+
+    return return_schema
