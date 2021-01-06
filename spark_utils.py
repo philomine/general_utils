@@ -211,3 +211,70 @@ def spark_schema_from_dict(schema):
     return_schema = t.StructType(return_schema)
 
     return return_schema
+
+
+def dict_to_pyspark_schema(schema):
+    """Takes in a dictionary in format {field_name: field_type}, and returns
+    a pyspark schema, of type pyspark.sql.types.StructType."""
+    spark_types = {
+        "string": t.StringType(),
+        "long": t.LongType(),
+        "datetime": t.TimestampType(),
+        "timestamp": t.TimestampType(),
+        "double": t.DoubleType(),
+        "bool": t.BooleanType(),
+        "boolean": t.BooleanType(),
+        "date": t.DateType(),
+        "float": t.FloatType(),
+        "int": t.IntegerType(),
+        "integer": t.IntegerType(),
+        "decimal(38,18)": t.DecimalType(38, 18),
+    }
+
+    return_schema = []
+    for field, field_type in schema.items():
+        field_type = spark_types[field_type]
+        return_schema.append(t.StructField(field, field_type, True))
+    return_schema = t.StructType(return_schema)
+
+    return return_schema
+
+
+def pyspark_schema_to_dict(schema):
+    """Takes in a pyspark schema, of type pyspark.sql.types.StructType and
+    returns a dictionary in format {field_name: field_type}."""
+    spark_types = [
+        "DataType",
+        "NullType",
+        "StringType",
+        "BinaryType",
+        "BooleanType",
+        "DateType",
+        "TimestampType",
+        "DecimalType",
+        "DoubleType",
+        "FloatType",
+        "ByteType",
+        "IntegerType",
+        "LongType",
+        "ShortType",
+        "ArrayType",
+    ]
+    spark_types = {key: key[:-4].lower() for key in spark_types}
+
+    return_schema = {}
+    for field in schema:
+        return_schema[str(field.name)] = spark_types[str(field.dataType)]
+
+    return return_schema
+
+
+def assert_same_df(df1, df2):
+    """Raises an assertion error if df1 and df2 have any difference."""
+    assert len(set(df1.columns)) == len(df1.columns)
+    assert len(set(df2.columns)) == len(df2.columns)
+    assert set(df1.columns) == set(df2.columns)
+    assert pyspark_schema_to_dict(df1.schema) == pyspark_schema_to_dict(df2.schema)
+    assert df1.count() == df2.count()
+    df = spark_union([df1, df2])
+    assert df.drop_duplicates().count() == df1.count()
